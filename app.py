@@ -20,7 +20,7 @@ VERSION_DATE = '2022-12-24'
 MY_EMOJI = '💧'
 MY_NAME = f'Fontus'
 GIT_REPO = 'https://github.com/lcalmbach/Pyper'
-APP_URL = 'https://lcalmbach-ogd-bs-browser-app-as449l.streamlit.app/'
+APP_URL = 'https://lcalmbach-pyper-app-netzym.streamlit.app/'
 
 def show_info_box():
     """
