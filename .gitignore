@@ -1,4 +1,5 @@
 env
+images
 __pycache__
 make_demo_data.py
 TODO.md
