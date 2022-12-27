@@ -4,13 +4,14 @@ import streamlit as st
 from bokeh.io import export_png, export_svgs
 from bokeh.plotting import figure, show
 from bokeh.models import ColumnDataSource, Range1d, LabelSet, Label, HoverTool, Arrow, NormalHead, OpenHead, VeeHead
+from bokeh.models.annotations import Title
 from bokeh.core.enums import MarkerType, LineDash
 import os
 
-
-import helper
+from helper import get_random_filename, add_meqpl_columns, flash_text, random_string
 from config import *
-from data import Dataset
+from project import Project
+import colors
 
 gap = 20
 figure_padding_left = 10
@@ -28,67 +29,122 @@ grid_line_pattern = 'dotted'
 legend_location = "top_right"
 arrow_length = 5
 arrow_size = 5
-image_file_format = 'png'
+IMAGE_FILE_FORMAT: str = 'png'
+MARKER_GENERATORS = ['1)symbol, 2)color', '1)color, 2)symbol', 'color+symbol']
 
 class Piper():
-    def __init__(self, dataset: Dataset):
-        self.cfg = {
-            'group_plot_by': None,
-            'group_legend_by': None,
-            'symbol_size': 5,
-            'fill_alpha': 0.8,
-            'plot_width': 800,
-            'na_k': True
-        }
-        self._dataset = dataset
-        self.data = self.init_data(self.dataset.data)
-        self.cfg['color'] = None
-        
-        
+    def __init__(self, prj: Project):
+        self.data = pd.DataFrame()
+        self.project = prj
+
+
     @property
-    def dataset(self):
-        return self._dataset
+    def project(self):
+        return self._project
     
-    @dataset.setter
-    def dataset(self, ds):
-         self._dataset = ds
-         self.data = self.init_data(self.dataset.data)
-         self.cfg['color'] = list(self.dataset.codes.keys())[0]
+    @project.setter
+    def project(self, prj):
+        self._project = prj
+        self.cfg = {
+            'group-plot-by': None,
+            'color': None,
+            'marker-size': 8,
+            'marker-fill-alpha': 0.8,
+            'marker-line-color': '#303132',
+            'color-palette': 'Category20',
+            'color-number': 11,
+            'marker-generator': '1)symbol, 2)color',
+            'marker-colors': [],
+            'marker-types': ['circle', 'square', 'triangle', 'diamond', 'inverted_triangle'],
+            'tooltips': {},
+            'plot-width': 800,
+            'plot-title': '',
+            'plot-title-text-size': 1.0,
+            'plot-title-align': 'center',
+            'plot-title-font': 'arial',
+
+        }
+        self.data = self.init_data(self.project.data)
+        self.cfg['tooltips'] = self.init_tooltips()
+
+
+    def init_tooltips(self):
+        tooltips = {}
+        for field in self.project.fields_list:
+            tooltips[field] = True if field in ['date', 'sample_date', 'station', 'ca', 'mg', 'k', 'na', 'cl', 'hco3', 'so4'] else False
+        return tooltips
 
 
     def init_data(self, df):
-        df.replace(to_replace=[None], value=0, inplace=True)
-        cations = [x for x in df.columns if x in ALL_CATIONS]
-        anions = [x for x in df.columns if x in ALL_ANIONS]
-        df = helper.add_meqpl_columns(df, cations + anions)
+        self.data = df
+        self.data.replace(to_replace=[None], value=0, inplace=True)
+        cations = [x for x in self.data.columns if x in ALL_CATIONS]
+        anions = [x for x in self.data.columns if x in ALL_ANIONS]
+        self.data = add_meqpl_columns(self.data, cations + anions)
         meqpl_cations = [f"{item}_meqpl" for item in cations]
         meqpl_anions = [f"{item}_meqpl" for item in anions]
-        df['sum_cations_meqpl'] = df[meqpl_cations].sum(axis=1)
-        df['sum_anions_meqpl'] = df[meqpl_anions].sum(axis=1)
+        self.data['sum_cations_meqpl'] = self.data[meqpl_cations].sum(axis=1)
+        self.data['sum_anions_meqpl'] = self.data[meqpl_anions].sum(axis=1)
         for par in cations:
-            df[f"{par}_pct"] = df[f"{par}_meqpl"] / df['sum_cations_meqpl'] * 100
+            self.data[f"{par}_pct"] = self.data[f"{par}_meqpl"] / self.data['sum_cations_meqpl'] * 100
         for par in anions:
-            df[f"{par}_pct"] = df[f"{par}_meqpl"] / df['sum_anions_meqpl'] * 100
+            self.data[f"{par}_pct"] = self.data[f"{par}_meqpl"] / self.data['sum_anions_meqpl'] * 100
         self.cfg['cation_cols'] = [f"{x}_pct" for x in cations]
         self.cfg['anion_cols'] = [f"{x}_pct" for x in anions]
-        df['ion_balance_pct'] = (df['sum_cations_meqpl'] - df['sum_anions_meqpl']) / (df['sum_cations_meqpl'] + df['sum_anions_meqpl']) * 100
+        self.data['ion_balance_pct'] = (self.data['sum_cations_meqpl'] - self.data['sum_anions_meqpl']) / (self.data['sum_cations_meqpl'] + self.data['sum_anions_meqpl']) * 100
 
-        #if self.cfg['na_k']:
-        #    df['na_meqpl'] = df['na_meqpl'] + df['k_meqpl']
-        #    df = df.drop(columns='k_meqpl', axis=1)
-        #    cations.pop(2)
-        return df
+        if list(self.cfg['tooltips'].keys()) != self.project.fields_list:
+            self.init_tooltips()
+        return self.data
 
+    def get_tooltips(self):
+        tooltips = []
+        for key, value in self.project.fields.items():
+            if self.cfg['tooltips'][key]:
+                if value['type'] == 'float':
+                    format_string = f"{{%0.{value['digits']}f}}"
+                elif value['type'] == 'date':
+                    format_string = f"{{%F}}"
+                else:
+                    format_string = ""
+                tooltip = (value['label'], f"@{key}{format_string}")
+                tooltips.append(tooltip)
+        return tooltips
+    
+    
+    def get_tooltip_formatter(self):
+        formatter = {}
+        for key, value in self.project.fields.items():
+            if value['type'] == 'float':
+                formatter[f"@{key}"] = 'printf'
+            elif value['type'] == 'date':
+                formatter[f"@{key}"] = 'datetime'
+        return formatter
 
-    def get_tranformed_data(self):
+    def get_tranformed_data(self, df:pd.DataFrame):
         def transform_to_xy(df, type):
             if type == 'cations':
-                pct_array = df[self.cfg['cation_cols']].to_numpy()
+                ions_list = ['ca_pct','na_pct','mg_pct']
+                if 'k_pct' in self.cfg['cation_cols']:
+                    _df = df.reset_index()[self.cfg['cation_cols'] + ['index']]
+                    _df['na_pct'] = _df['na_pct'] + _df['k_pct']
+                    _df = _df[ions_list].reset_index()
+                else:
+                    _df = df.reset_index()[ions_list + ['index']]
+                pct_array = _df[ions_list + ['index']].to_numpy()
                 offset = 0
             else:
-                pct_array = df[self.cfg['anion_cols']].to_numpy()
+                ions_list = ['hco3_pct','cl_pct','so4_pct']
+                if 'co3_pct' in self.cfg['anion_cols']:
+                    _df = df.reset_index()[self.cfg['anion_cols'] + ['index']]
+                    _df['hco3_pct'] = _df['hco3_pct'] + _df['co3_pct']
+                    _df = _df[ions_list + ['index']]
+                else:
+                    _df = df.reset_index()[ions_list + ['index']]
+                pct_array = _df[ions_list + ['index']].to_numpy()
                 offset = 100 + gap
             df_xy = pd.DataFrame()
+            index_col = pct_array.shape[1]-1
             x = 0
             y = 0
             i = 0
@@ -110,14 +166,13 @@ class Piper():
                         q = -(m * x)
                         x = (row[2] - q) / m
                     y = sin60 * row[2]
-
-                df_xy = df_xy.append({'x': x + offset, 'y': y, 'type': type[0:1]}, ignore_index=True)
+                df_xy = df_xy.append({'index': row[index_col], '_x': x + offset, '_y': y, 'type': type[0:1]}, ignore_index=True)
                 i += 1
-
-            df_xy = df_xy.join(df)
+            df_xy['index'] = df_xy['index'].astype(int)
+            df_xy = df_xy.set_index('index').join(df)
             return df_xy
 
-        def projected_point(anions, cations):
+        def projected_point(anions: pd.DataFrame, cations: pd.DataFrame):
             # ax! = ax! + 110
             #
             # m! = TAN60
@@ -127,20 +182,22 @@ class Piper():
             # pry! = TAN60 * prx! + Q1!
 
             df_xy = pd.DataFrame()
-            for i in range(0, len(anions)):     
+            for i in range(0, len(anions)):
                 m = tan60
-                q1 = cations.iloc[i]['y'] - (m * cations.iloc[i]['x'])
-                q2 = anions.iloc[i]['y'] + (m * anions.iloc[i]['x'])
+                q1 = cations.iloc[i]['_y'] - (m * cations.iloc[i]['_x'])
+                q2 = anions.iloc[i]['_y'] + (m * anions.iloc[i]['_x'])
                 
                 prx = (q2 - q1) / (2 * m)
                 pry = m * prx + q1
-                df_xy = df_xy.append({'x': prx, 'y': pry,'type': 'p'}, ignore_index=True)
+                df_xy = df_xy.append({'index': anions.reset_index().iloc[i]['index'], '_x': prx, '_y': pry,'type': 'p'}, ignore_index=True)
+            
+            df_xy['index'] = df_xy['index'].astype(int)
+            df_xy = df_xy.set_index('index').join(self.data)
             return df_xy
-
-        cations_df = transform_to_xy(self.data, 'cations')
-        anions_df = transform_to_xy(self.data, 'anions')
+        
+        cations_df = transform_to_xy(df, 'cations')
+        anions_df = transform_to_xy(df, 'anions')
         projected_df = projected_point(anions_df, cations_df)
-        projected_df = projected_df.join(self.data)
         df_xy = pd.concat([cations_df, anions_df, projected_df], ignore_index=True)
         return df_xy
 
@@ -455,62 +512,157 @@ class Piper():
 
 
     def draw_markers(self, df):
-        i = 0
-        items = list(df[self.cfg['color']].dropna().unique())
-        if len(items) > MAX_LEGEND_ITEMS:
-            warning = f'Plot has {len(items)} items, only the first {MAX_LEGEND_ITEMS} will be shown. Use filters to further reduce the number of legend-items'
-            helper.flash_text(warning, 'warning')
-            items = items[:MAX_LEGEND_ITEMS]
+        def color_generator(i: int):
+            all_colors = colors.get_colors(self.cfg['color-palette'], self.cfg['color-number'])
+            if MARKER_GENERATORS.index(self.cfg['marker-generator']) == 0: # symbol first then color
+                color_id = i // len(self.cfg['marker-types'])
+                color = all_colors[color_id]
+                marker_type_id = i % len(self.cfg['marker-types'])
+                marker_type = self.cfg['marker-types'][marker_type_id]
+            elif MARKER_GENERATORS.index(self.cfg['marker-generator']) == 1: # color first then symbol
+                marker_type_id = i // len(self.cfg['marker-types'])
+                marker_type = self.cfg['marker-types'][marker_type_id]
+                color_id = i % len(self.cfg['marker-types'])
+                color = all_colors[color_id]
+            else:
+                serie_len = len(self.cfg['marker-types']) if len(self.cfg['marker-types']) < len(self.cfg['marker-types']) else len(self.cfg['marker-types'])
+                id = i % serie_len
+                color = all_colors[id]
+                marker_type = self.cfg['marker-types'][id]
+            return color, marker_type
 
-        for station in items:
-            df_filtered = df[df[self.cfg['color']] == station]
-            colors = ['red','green','blue','orange','yellow','red','green','blue','orange','yellow','red','green','blue','orange','yellow']
-            markers = ['circle','rect','triangle','cross','circle','rect','triangle','cross''circle','rect','triangle','cross']
-            #for index,row in df_filtered.iterrows():
-            if markers[i]=='circle':
-                self.plot.circle(df_filtered['x'], df_filtered['y'], legend_label=station, size=self.cfg['symbol_size'], color=colors[i], alpha=self.cfg['fill_alpha'])
-            elif markers[i]=='rect':
-                self.plot.square(df_filtered['x'], df_filtered['y'], legend_label=station,size=self.cfg['symbol_size'], color=colors[i], alpha=self.cfg['fill_alpha'])
-            elif markers[i]=='triangle':
-                self.plot.triangle(df_filtered['x'], df_filtered['y'], legend_label=station,size=self.cfg['symbol_size'], color=colors[i], alpha=self.cfg['fill_alpha'])
-            elif markers[i]=='cross':
-                self.plot.cross(df_filtered['x'], df_filtered['y'], legend_label=station,size=self.cfg['symbol_size'], color=colors[i], alpha=self.cfg['fill_alpha'])
-            i+=1
-            if i == len(markers):
-                i=0
+        def draw_symbol(df, marker_color, marker_type, label):
+            if marker_type =='asterisk':
+                self.plot.asterisk('_x', '_y',  legend_label=label, size=self.cfg['marker-size'], color=marker_color, alpha=self.cfg['marker-fill-alpha'], source = df)
+            elif marker_type=='circle':
+                self.plot.circle('_x', '_y', legend_label=label, size=self.cfg['marker-size'], color=marker_color, line_color=self.cfg['marker-line-color'], alpha=self.cfg['marker-fill-alpha'], source = df)
+            elif marker_type=='circle_cross':
+                self.plot.circle_cross('_x', '_y', legend_label=label, size=self.cfg['marker-size'], color=marker_color, line_color=self.cfg['marker-line-color'], alpha=self.cfg['marker-fill-alpha'], source = df)
+            elif marker_type=='circle_dot':
+                self.plot.circle_dot('_x', '_y', legend_label=label, size=self.cfg['marker-size'], color=marker_color, line_color=self.cfg['marker-line-color'], alpha=self.cfg['marker-fill-alpha'], source = df)
+            elif marker_type=='circle_x':
+                self.plot.circle_x('_x', '_y', legend_label=label, size=self.cfg['marker-size'], color=marker_color, line_color=self.cfg['marker-line-color'], alpha=self.cfg['marker-fill-alpha'], source = df)
+            elif marker_type=='circle_y':
+                self.plot.circle_y('_x', '_y', legend_label=label, size=self.cfg['marker-size'], color=marker_color, line_color=self.cfg['marker-line-color'], alpha=self.cfg['marker-fill-alpha'], source = df)
+            elif marker_type=='cross':
+                self.plot.cross('_x', '_y',  legend_label=label,size=self.cfg['marker-size'], color=marker_color, line_color=self.cfg['marker-line-color'], alpha=self.cfg['marker-fill-alpha'], source = df)
+            elif marker_type=='dash':
+                self.plot.dash('_x', '_y',  legend_label=label,size=self.cfg['marker-size'], color=marker_color, line_color=self.cfg['marker-line-color'], alpha=self.cfg['marker-fill-alpha'], source = df)
+            elif marker_type=='diamond':
+                self.plot.diamond('_x', '_y',  legend_label=label,size=self.cfg['marker-size'], color=marker_color, line_color=self.cfg['marker-line-color'], alpha=self.cfg['marker-fill-alpha'], source = df)
+            elif marker_type=='diamond_cross':
+                self.plot.diamond_cross('_x', '_y',  legend_label=label,size=self.cfg['marker-size'], color=marker_color, line_color=self.cfg['marker-line-color'], alpha=self.cfg['marker-fill-alpha'], source = df)
+            elif marker_type=='diamond_dot':
+                self.plot.diamond_dot('_x', '_y',  legend_label=label,size=self.cfg['marker-size'], color=marker_color, line_color=self.cfg['marker-line-color'], alpha=self.cfg['marker-fill-alpha'], source = df)
+            elif marker_type=='dot':
+                self.plot.dot('_x', '_y',  legend_label=label,size=self.cfg['marker-size'], color=marker_color, line_color=self.cfg['marker-line-color'], alpha=self.cfg['marker-fill-alpha'], source = df)
+            elif marker_type=='hex':
+                self.plot.hex('_x', '_y',  legend_label=label,size=self.cfg['marker-size'], color=marker_color, line_color=self.cfg['marker-line-color'], alpha=self.cfg['marker-fill-alpha'], source = df)
+            elif marker_type=='hex_dot':
+                self.plot.hex_dot('_x', '_y',  legend_label=label,size=self.cfg['marker-size'], color=marker_color, line_color=self.cfg['marker-line-color'], alpha=self.cfg['marker-fill-alpha'], source = df)
+            elif marker_type=='inverted_triangle':
+                self.plot.inverted_triangle('_x', '_y',  legend_label=label,size=self.cfg['marker-size'], color=marker_color, line_color=self.cfg['marker-line-color'], alpha=self.cfg['marker-fill-alpha'], source = df)
+            elif marker_type=='plus':
+                self.plot.plus('_x', '_y',  legend_label=label,size=self.cfg['marker-size'], color=marker_color, line_color=self.cfg['marker-line-color'], alpha=self.cfg['marker-fill-alpha'], source = df)
+            elif marker_type=='square':
+                self.plot.square('_x', '_y', legend_label=label,size=self.cfg['marker-size'], color=marker_color, line_color=self.cfg['marker-line-color'], alpha=self.cfg['marker-fill-alpha'], source = df)
+            elif marker_type=='square_cross':
+                self.plot.square_cross('_x', '_y', legend_label=label,size=self.cfg['marker-size'], color=marker_color, line_color=self.cfg['marker-line-color'], alpha=self.cfg['marker-fill-alpha'], source = df)
+            elif marker_type=='square_dot':
+                self.plot.square_dot('_x', '_y', legend_label=label,size=self.cfg['marker-size'], color=marker_color, line_color=self.cfg['marker-line-color'], alpha=self.cfg['marker-fill-alpha'], source = df)
+            elif marker_type=='square_pin':
+                self.plot.square_pin('_x', '_y', legend_label=label,size=self.cfg['marker-size'], color=marker_color, line_color=self.cfg['marker-line-color'], alpha=self.cfg['marker-fill-alpha'], source = df)
+            elif marker_type=='square_x':
+                self.plot.square_x('_x', '_y', legend_label=label,size=self.cfg['marker-size'], color=marker_color, line_color=self.cfg['marker-line-color'], alpha=self.cfg['marker-fill-alpha'], source = df)
+            elif marker_type=='star':
+                self.plot.star('_x', '_y', legend_label=label,size=self.cfg['marker-size'], color=marker_color, line_color=self.cfg['marker-line-color'], alpha=self.cfg['marker-fill-alpha'], source = df)
+            elif marker_type=='star_dot':
+                self.plot.star_dot('_x', '_y', legend_label=label,size=self.cfg['marker-size'], color=marker_color, line_color=self.cfg['marker-line-color'], alpha=self.cfg['marker-fill-alpha'], source = df)
+            elif marker_type=='triangle':
+                self.plot.triangle('_x', '_y', legend_label=label,size=self.cfg['marker-size'], color=marker_color, line_color=self.cfg['marker-line-color'], alpha=self.cfg['marker-fill-alpha'], source = df)
+            elif marker_type=='triangle_dot':
+                self.plot.triangle_dot('_x', '_y', legend_label=label,size=self.cfg['marker-size'], color=marker_color, line_color=self.cfg['marker-line-color'], alpha=self.cfg['marker-fill-alpha'], source = df)
+            elif marker_type=='x':
+                self.plot.x('_x', '_y', legend_label=label,size=self.cfg['marker-size'], color=marker_color, line_color=self.cfg['marker-line-color'], alpha=self.cfg['marker-fill-alpha'], source = df)
+            elif marker_type=='y':
+                self.plot.y('_x', '_y', legend_label=label,size=self.cfg['marker-size'], color=marker_color, line_color=self.cfg['marker-line-color'], alpha=self.cfg['marker-fill-alpha'], source = df)
+
+
+        if self.cfg['color'] == None:
+            draw_symbol(df, colors.get_colors(self.cfg['color-palette'], 3)[0], self.cfg['marker-types'][0], '')
+            self.plot.legend.visible = False
+        else:
+            items = list(df[self.cfg['color']].dropna().unique())
+            if len(items) > MAX_LEGEND_ITEMS:
+                warning = f'Plot has {len(items)} items, only the first {MAX_LEGEND_ITEMS} will be shown. Use filters to further reduce the number of legend-items'
+                flash_text(warning, 'warning')
+                items = items[:MAX_LEGEND_ITEMS]
+            i = 0
+            for item in items:
+                color, marker_type = color_generator(i)
+                filtered_df = df[df[self.cfg['color']] == item]
+                draw_symbol(filtered_df,color, marker_type, item)
+                i+=1
             self.plot.legend.location = legend_location
-            
+
 
     def get_user_input(self):
-        group_by_options = [None] + [x for x in self.data.columns if x not in DATA_NUM_FIELDS]
-        id = group_by_options.index(self.cfg['group_plot_by'])
-        self.cfg['group_plot_by'] = st.selectbox('Group plot by', options=group_by_options, index=id)
-        id = group_by_options.index(self.cfg['group_legend_by'])
-        self.cfg['group_legend_by'] = st.selectbox('Group Legend by', options=group_by_options, index=id)
-        self.cfg['symbol_size'] = st.number_input('Marker size', min_value=1, max_value=50, step=1, value=int(self.cfg['symbol_size']))
-        self.cfg['fill_alpha'] = st.number_input('Marker fill opacity', min_value=0.0,max_value=1.0,step=0.1, value=self.cfg['fill_alpha'])
-        self.cfg['plot_width'] = st.number_input('Plot width', min_value= 100, max_value=2000, step=50, value=self.cfg['plot_width'])
-    
+        if st.session_state['project'] != self.project:
+            st.write('eqal')
+            self.init_data(self.project.data)
+        else:
+            st.write('ne')
+            self.project = st.session_state['project']
+        with st.expander('Plot properties', expanded=True):
+            #title 
+            group_by_options = [None] + self.project.group_fields()
+            self.cfg['plot-title'] = st.text_input('Plot Title', value=self.cfg['plot-title'])
+            self.cfg['plot-title-text-size'] = st.number_input('Plot title font size', min_value=0.1, max_value=5.0, value=self.cfg['plot-title-text-size'])
+            id = HORIZONTAL_ALIGNEMENT_OPTIONS.index(self.cfg['plot-title-align'])
+            self.cfg['plot-title-align'] = st.selectbox('Plot title alignment', options=HORIZONTAL_ALIGNEMENT_OPTIONS, index=id)
+            id = group_by_options.index(self.cfg['group-plot-by'])
+            self.cfg['group-plot-by'] = st.selectbox('Group plot by', options=group_by_options, index=id)
+            id = group_by_options.index(self.cfg['color'])
+            self.cfg['color'] = st.selectbox('Group Legend by', options=group_by_options, index=id)
+            self.cfg['plot-width'] = st.number_input('Plot width', min_value= 100, max_value=2000, step=50, value=self.cfg['plot-width'])
+        with st.expander('Marker properties', expanded=True):
+            # https://github.com/d3/d3-3.x-api-reference/blob/master/Ordinal-Scales.md#categorical-colors
+            self.cfg['marker-size'] = st.number_input('Marker size', min_value=1, max_value=50, step=1, value=int(self.cfg['marker-size']))
+            self.cfg['color-palette'], self.cfg['color-number'] = colors.user_input_palette('Marker color palette', self.cfg['color-palette'], self.cfg['color-number'])
+            id = MARKER_GENERATORS.index(self.cfg['marker-generator'])
+            self.cfg['marker-generator'] = st.selectbox('Marker generator algorithm', options=MARKER_GENERATORS, index=id)
+            self.cfg['marker-fill-alpha'] = st.number_input('Marker fill opacity', min_value=0.0,max_value=1.0,step=0.1, value=self.cfg['marker-fill-alpha'])
+            self.cfg['marker-types'] = st.multiselect('Marker types', options=list(MarkerType), default=self.cfg['marker-types'])
+            st.markdown('Tooltips')
+            for key, value in self.project.fields.items():
+                self.cfg['tooltips'][key] = st.checkbox(f"Show {value['label']}", value = self.cfg['tooltips'][key], key=key +'cb')
 
-    def get_plot(self):
-        self.plot = figure(width=int(self.cfg['plot_width']), 
-                           height=int(self.cfg['plot_width'] * sin60), 
-                           y_range=(-figure_padding_bottom, int((200+gap+figure_padding_top) * sin60)), 
-                           tools=[HoverTool()],
+
+    def get_plot(self, df):
+        self.plot = figure(width=int(self.cfg['plot-width']),
+                           height=int(self.cfg['plot-width'] * sin60), 
+                           y_range=(-figure_padding_bottom, int((200+gap+figure_padding_top) * sin60)),
                            x_range=(-figure_padding_left, 200 + gap + figure_padding_right))
-        
-        #('Station', f"@{{{st.session_state.station_col}}}"),
-        #("Ca", "@ca_pct")
         self.plot.add_tools(HoverTool(
-                tooltips=[
-                    ('Station', '@Probenahmestelle'),
-                    ('Ca', '@ca_pct')
-                ],
-            )
+                tooltips=self.get_tooltips(),
+                formatters=self.get_tooltip_formatter(),
+            ),
         )
+        if self.cfg['plot-title'] != '':
+            title = Title()
+            placeholder = f"{{{self.cfg['group-plot-by']}}}"
+            if placeholder in self.cfg['plot-title']:
+                value = df.iloc[0][self.cfg['group-plot-by']]
+                title.text = self.cfg['plot-title'].replace(placeholder, value)
+            else:
+                title.text = self.cfg['plot-title']
+            title.text_font_size = f"{self.cfg['plot-title-text-size']}em"
+            title.align = self.cfg['plot-title-align']
+            self.plot.title = title
+
         self.draw_triangles()
         self.draw_axis()
-        data_transformed = self.get_tranformed_data()
+        data_transformed = self.get_tranformed_data(df)
         self.draw_markers(data_transformed)
         self.plot.background_fill_color = None
         self.plot.border_fill_color = None
@@ -519,10 +671,12 @@ class Piper():
 
     def show_save_file_button(self, p):
         os.environ["PATH"] += os.pathsep + os.getcwd()
-        if st.button("Save png file"):
-            filename = 'piper.png'
+        if st.button("Save png file", key=f'save_{random_string(5)}'):
+            filename = get_random_filename('piper', IMAGE_FILE_FORMAT)
+            p.toolbar_location = None
+            p.outline_line_color = None
             export_png(p, filename=filename)
-            helper.flash_text(f"The Piper plot has been saved to **{filename}** and is ready for download", 'info')
+            flash_text(f"The Piper plot has been saved to **{filename}** and is ready for download", 'info')
             with open(filename, "rb") as file:
                 btn = st.download_button(
                     label="Download image",
@@ -531,16 +685,28 @@ class Piper():
                     mime="image/png"
                 )
 
-
-    def show_plot(self):
-        p = self.get_plot()
-        st.bokeh_chart(p)
+    def show_plot_footer(self, p, df:pd.DataFrame):
         with st.expander('Data', expanded=False):
-            st.write(f"{len(self.data)} records")
-            st.write(self.data)
+            st.write(f"{len(df)} records")
+            st.write(df)
             st.download_button(label="Download data as CSV",
-                data=self.data.to_csv(sep=';').encode('utf-8'),
+                data=df.to_csv(sep=';').encode('utf-8'),
                 file_name='fontus_piper_data.csv',
                 mime='text/csv',
+                key = f'save_button_{random_string(5)}'
             )
         self.show_save_file_button(p)
+
+    def show_plot(self):
+        if self.cfg['group-plot-by']:
+            for item in self.project.codes[self.cfg['group-plot-by']]:
+                df_filtered = self.data[self.data[self.cfg['group-plot-by']]==item]
+                if len(df_filtered) > 0:
+                    p = self.get_plot(df_filtered)
+                    st.bokeh_chart(p)
+                    self.show_plot_footer(p, self.data)
+        else:
+            p = self.get_plot(self.data)
+            st.bokeh_chart(p)
+            self.show_plot_footer(p, self.data)
+       

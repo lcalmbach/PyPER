@@ -55,15 +55,15 @@ MAJOR_CATIONS = [
 ]
 
 PARAMETER_DICT = {
-        'ca': {'formula':'Ca++', 'name': 'Calcium', 'fmw': 40.078, 'valence': 2},
-        'mg': {'formula':'Mg++', 'name': 'Magnesium', 'fmw': 24.305, 'valence': 2},
-        'na': {'formula':'Na+', 'name': 'Sodium', 'fmw': 22.990, 'valence': 2},
-        'k': {'formula':'K+', 'name': 'Potassium', 'fmw': 39.098, 'valence': 2},
-        'so4': {'formula':'SO4++', 'name': 'Sulfate', 'fmw': 96, 'valence': -2},
-        'cl': {'formula':'Cl-', 'name': 'Calcium', 'fmw': 35.45, 'valence': -1},
-        'hco3': {'formula':'HCO3-', 'name': 'Calcium', 'fmw': 	61.0168, 'valence': -1},
-        'co3': {'formula':'CO3--', 'name': 'Calcium', 'fmw': 	60.008, 'valence': -2},
-        'alk': {'formula':'Alk', 'name': 'Alk', 'fmw': 50, 'valence': -1},
+        'ca': {'formula':'Ca++', 'name': 'Calcium', 'fmw': 40.078, 'valence': 2, 'unit': 'mg/L'},
+        'mg': {'formula':'Mg++', 'name': 'Magnesium', 'fmw': 24.305, 'valence': 2, 'unit': 'mg/L'},
+        'na': {'formula':'Na+', 'name': 'Sodium', 'fmw': 22.990, 'valence': 1, 'unit': 'mg/L'},
+        'k': {'formula':'K+', 'name': 'Potassium', 'fmw': 39.098, 'valence': 1, 'unit': 'mg/L'},
+        'so4': {'formula':'SO4++', 'name': 'Sulfate', 'fmw': 96, 'valence': -2, 'unit': 'mg/L'},
+        'cl': {'formula':'Cl-', 'name': 'Calcium', 'fmw': 35.45, 'valence': -1, 'unit': 'mg/L'},
+        'hco3': {'formula':'HCO3-', 'name': 'Calcium', 'fmw': 	61.0168, 'valence': -1, 'unit': 'mg/L'},
+        'co3': {'formula':'CO3--', 'name': 'Calcium', 'fmw': 	60.008, 'valence': -2, 'unit': 'mg/L'},
+        'alk': {'formula':'Alk', 'name': 'Alk', 'fmw': 50, 'valence': -1, 'unit': 'mg/L'},
     }
 
 MAX_LEGEND_ITEMS = 20
@@ -72,14 +72,21 @@ LATITUDE_COL = 'latitude'
 LONGITUDE_COL = 'longitude'
 PLOTS = ['Piper']
 
+HORIZONTAL_ALIGNEMENT_OPTIONS = ['left', 'center', 'right']
+VERTICAL_ALIGNEMENT_OPTIONS = ['top', 'middle', 'bottom']
+
+
+
 # texts
 ABOUT_TEXT = """## Fontus
-This App allows to generate beautiful Piper plots based on your uploaded data. Your may also explore the app using the built in demo data. If you wish to upload your data, proceed as follows:
+This App allows to generate beautiful Piper plots based on your uploaded data. You may also explore the app using the built-in demo data. If you wish to upload your own data, proceed as follows:
 
-1. goto the `Load Data` tab and select the `Upload dataset` option.
-2. format your data to the one row per sample format, each row must contain at least the following columns: station, Ca, Mg, Na, Hco3 (or Alk), So4, Cl. In addition you may include the columns K and CO3 whci will be added to the sodium and bicorbonate endpoints.
-3. Make sure the right encoding and seperatur character are specified.
-4. Drag the file into the ddrop file area or click on the `Browse files` button and select a file using the file explorer.
+1. Activate the `Load Data` tab and select the `Upload dataset` option.
+2. Format your data to the one row per sample format, each row must contain at least the following columns: station, Ca, Mg, Na, Hco3 (or Alk), So4, Cl. In addition you may include the columns K and CO3 whci will be added to the sodium and bicorbonate endpoints.
+3. Make sure the right encoding and seperator character are specified.
+4. Drag the file into the drop file area or click on the `Browse files` button and select a file using the file explorer.
+5. Verify and adjust the plot settinsg on the `Plot Settings`tab.
+6. See your Piper plot on the `Show Plot` tab.
 
-Note that no uploaded is stored on file. However we encourage all users not to upload senstive information.
+Note that no uploaded data is stored on the server. However, we encourage all users not to upload senstive information. 
 """

@@ -2,7 +2,7 @@ import streamlit as st
 
 #from tools import *
 from config import *
-from data import Dataset
+from project import Project
 from plots.piper import Piper
 
 # https://stackoverflow.com/questions/65655712/how-to-fix-the-chromedriver-if-its-not-compatible-with-chrome-version
@@ -47,8 +47,8 @@ def init_layout():
 
 def init_settings():
     if 'data' not in st.session_state:
-        st.session_state['dataset'] = Dataset()
-        st.session_state['plot'] = Piper(st.session_state['dataset'])
+        st.session_state['project'] = Project()
+        st.session_state['plot'] = Piper(st.session_state['project'])
 
 def main():
     init_layout()
@@ -59,8 +59,8 @@ def main():
     with tabs[0]:
         st.write(ABOUT_TEXT)
     with tabs[1]:
-        st.session_state['dataset'].get_user_input()
-        st.session_state['plot'].dataset = st.session_state['dataset']
+        st.session_state['project'].get_user_input()
+        st.session_state['plot'].dataset = st.session_state['project']
     with tabs[2]:
         st.session_state['plot'].get_user_input()
     with tabs[3]:

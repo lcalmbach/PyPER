@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import math
+import random, string
 from datetime import datetime
 import time
 from config import PARAMETER_DICT
@@ -67,3 +68,12 @@ def add_meqpl_columns(data, parameters):
         fact = 1 / PARAMETER_DICT[par]['fmw'] * abs(PARAMETER_DICT[par]['valence'])
         data[col] = data[par] * fact
     return data
+
+
+def is_chemical(par: str):
+    return (par in PARAMETER_DICT.keys())
+
+
+def random_string(length):
+    letters = string.ascii_lowercase
+    return ''.join(random.choice(letters) for i in range(length))
