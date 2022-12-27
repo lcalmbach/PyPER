@@ -20,17 +20,16 @@ figure_padding_top = 10
 figure_padding_bottom = 20
 marker_size = 10
 tick_len = 2
-grid_color = 'silver'
+grid_color = 'darkgrey'
 line_color = 'black'
 grid_line_pattern = 'dashed'
-tick_label_font_size = 8
-axis_title_font_size = 10
 grid_line_pattern = 'dotted'
 legend_location = "top_right"
 arrow_length = 5
 arrow_size = 5
-IMAGE_FILE_FORMAT: str = 'png'
-MARKER_GENERATORS = ['1)symbol, 2)color', '1)color, 2)symbol', 'color+symbol']
+MARKER_GENERATORS = ['1) symbol, 2) color',
+                     '1) color, 2) symbol',
+                     'color+symbol']
 
 class Piper():
     def __init__(self, prj: Project):
@@ -53,7 +52,7 @@ class Piper():
             'marker-line-color': '#303132',
             'color-palette': 'Category20',
             'color-number': 11,
-            'marker-generator': '1)symbol, 2)color',
+            'marker-generator': MARKER_GENERATORS[0],
             'marker-colors': [],
             'marker-types': ['circle', 'square', 'triangle', 'diamond', 'inverted_triangle'],
             'tooltips': {},
@@ -62,7 +61,11 @@ class Piper():
             'plot-title-text-size': 1.0,
             'plot-title-align': 'center',
             'plot-title-font': 'arial',
-
+            'image_format': 'png',
+            'show-grid': True,
+            'show-tick-labels': True,
+            'tick-label-font-size': 9,
+            'axis-title-font-size': 12,
         }
         self.data = self.init_data(self.project.data)
         self.cfg['tooltips'] = self.init_tooltips()
@@ -120,6 +123,7 @@ class Piper():
             elif value['type'] == 'date':
                 formatter[f"@{key}"] = 'datetime'
         return formatter
+
 
     def get_tranformed_data(self, df:pd.DataFrame):
         def transform_to_xy(df, type):
@@ -229,10 +233,11 @@ class Piper():
                 else:
                     x = [i*20+delta, i*20 + tick_len * cos60 + delta]
                 self.plot.line(x, y, line_width=1, color=line_color) 
-                text = str(i*20) if offset else str(100-i*20)
-                tick_label = Label(x=x[1]-2, y=y[1]-6,text_font_size=f"{tick_label_font_size}pt",
-                    text=text, render_mode='css')
-                self.plot.add_layout(tick_label)
+                if self.cfg['show-tick-labels']:
+                    text = str(i*20) if offset else str(100-i*20)
+                    tick_label = Label(x=x[1]-2, y=y[1]-6,text_font_size=f"{self.cfg['tick-label-font-size']}pt",
+                        text=text, render_mode='css')
+                    self.plot.add_layout(tick_label)
 
         def draw_triangle_left(offset:bool):
             delta = (100+gap) if offset else 0
@@ -243,9 +248,10 @@ class Piper():
                 if not offset:
                     y = y_tick[1] - 3
                     x = x_tick[1] - 5
-                    tick_label = Label(x=x, y=y,text_font_size=f"{tick_label_font_size}pt",
-                        text=str(i*20), render_mode='css')
-                    self.plot.add_layout(tick_label)
+                    if self.cfg['show-tick-labels']:
+                        tick_label = Label(x=x, y=y,text_font_size=f"{self.cfg['tick-label-font-size']}pt",
+                            text=str(i*20), render_mode='css')
+                        self.plot.add_layout(tick_label)
 
         def draw_triangle_right(offset:bool):
             delta = (100+gap) if offset else 0
@@ -256,9 +262,10 @@ class Piper():
                 if offset:
                     y = y_tick[1] - 3
                     x = x_tick[1] + 1
-                    tick_label = Label(x=x, y=y,text_font_size=f"{tick_label_font_size}pt",
-                        text=str(i*20), render_mode='css')
-                    self.plot.add_layout(tick_label)
+                    if self.cfg['show-tick-labels']:
+                        tick_label = Label(x=x, y=y,text_font_size=f"{self.cfg['tick-label-font-size']}pt",
+                            text=str(i*20), render_mode='css')
+                        self.plot.add_layout(tick_label)
 
         def draw_diamond_ul():
             for i in range(1, 5):
@@ -267,9 +274,10 @@ class Piper():
                 self.plot.line(x_tick, y_tick, line_width=1, color=line_color)  
                 y = y_tick[1] - 2
                 x = x_tick[1] - 5
-                tick_label = Label(x=x, y=y, text_font_size=f"{tick_label_font_size}pt",
-                    text=str(i*20), render_mode='css')
-                self.plot.add_layout(tick_label)
+                if self.cfg['show-tick-labels']:
+                    tick_label = Label(x=x, y=y, text_font_size=f"{self.cfg['tick-label-font-size']}pt",
+                        text=str(i*20), render_mode='css')
+                    self.plot.add_layout(tick_label)
         
         def draw_diamond_ur():
             for i in range(1, 5):
@@ -278,7 +286,7 @@ class Piper():
                 self.plot.line(x_tick, y_tick, line_width=1, color=line_color)
                 y = y_tick[1] - 2
                 x = x_tick[1] + 1
-                tick_label = Label(x=x, y=y, text_font_size=f"{tick_label_font_size}pt",
+                tick_label = Label(x=x, y=y, text_font_size=f"{self.cfg['tick-label-font-size']}pt",
                                 text=str(100-i*20), render_mode='css')
                 self.plot.add_layout(tick_label)
 
@@ -327,13 +335,13 @@ class Piper():
             def draw_axis_titles():
                 def draw_ca_title():
                     x = 50 - 3
-                    y = 0 - 3 - axis_title_font_size 
+                    y = 0 - 3 - self.cfg['axis-title-font-size'] 
                     xa = [x - 2, x - 2 - arrow_size]
                     ya = [y + 2.5, y + arrow_size ]
                     title = 'Ca++'
 
                     tick_label = Label(x=x, y=y,
-                        text_font_size=f"{axis_title_font_size}pt",
+                        text_font_size=f"{self.cfg['axis-title-font-size']}pt",
                         text=title, text_font_style ='bold')
                     self.plot.add_layout(tick_label)
                     self.plot.add_layout(Arrow(end=NormalHead(size=arrow_size), line_color=line_color,
@@ -341,12 +349,12 @@ class Piper():
                 
                 def draw_cl_title():
                     x = 100 + gap + 50 - 3
-                    y = 0 - 3 - axis_title_font_size 
+                    y = 0 - 3 - self.cfg['axis-title-font-size'] 
                     xa = [x + 7, x + 11]
                     ya = [y + 2.5, y + 2 ]
                     title = 'Cl-'
                     tick_label = Label(x=x, y=y,
-                        text_font_size=f"{axis_title_font_size}pt",
+                        text_font_size=f"{self.cfg['axis-title-font-size']}pt",
                         text=title, text_font_style ='bold')
                     self.plot.add_layout(tick_label)
                     self.plot.add_layout(Arrow(end=NormalHead(size=5), line_color=line_color,
@@ -354,14 +362,14 @@ class Piper():
                 
                 def draw_mg_title():
                     x = 12
-                    y = 44 - axis_title_font_size + 3
+                    y = 44 - self.cfg['axis-title-font-size'] + 3
                     #self.plot.circle(x=x,y=y)
                     xa = [x + 9 * cos60, x + 9 * cos60 + 4 * cos60]
                     ya = [y + 14 * sin60, y + 14 * sin60 + 4 * sin60 ]
 
                     title = 'Mg++'
                     tick_label = Label(x=x, y=y,
-                        text_font_size=f"{axis_title_font_size}pt",
+                        text_font_size=f"{self.cfg['axis-title-font-size']}pt",
                         text=title, text_font_style ='bold',
                         angle = 60.5, # not sure why 60 gives the wrong angle
                         angle_units="deg")
@@ -371,14 +379,14 @@ class Piper():
                 
                 def draw_SO4_title():
                     x = 200 + gap - 25 - 13 * cos60 + 14
-                    y = 50 * sin60 - axis_title_font_size + 15*sin60
+                    y = 50 * sin60 - self.cfg['axis-title-font-size'] + 15*sin60
                     #self.plot.circle(x=x,y=y)
                     xa = [x + 2 * cos60, x + 2 * cos60 - 4 * cos60]
                     ya = [y + 2 * sin60, y + 2 * sin60 + 4 * sin60 ]
 
                     title = 'SO4--'
                     tick_label = Label(x=x, y=y,
-                        text_font_size=f"{axis_title_font_size}pt",
+                        text_font_size=f"{self.cfg['axis-title-font-size']}pt",
                         text=title, text_font_style ='bold',
                         angle = -60.5, # not sure why 60 gives the wrong angle
                         angle_units="deg")
@@ -395,7 +403,7 @@ class Piper():
 
                     title = 'Cl- + SO4--'
                     tick_label = Label(x=x, y=y,
-                        text_font_size=f"{axis_title_font_size}pt",
+                        text_font_size=f"{self.cfg['axis-title-font-size']}pt",
                         text=title, text_font_style ='bold',
                         angle = 60, # not sure why 60 gives the wrong angle
                         angle_units="deg")
@@ -412,7 +420,7 @@ class Piper():
 
                     title = 'Ca++ + Mg++'
                     tick_label = Label(x=x, y=y,
-                        text_font_size=f"{axis_title_font_size}pt",
+                        text_font_size=f"{self.cfg['axis-title-font-size']}pt",
                         text=title, text_font_style ='bold',
                         angle = -60, 
                         angle_units="deg")
@@ -429,7 +437,7 @@ class Piper():
 
                     title = 'HCO3- + CO3--'
                     tick_label = Label(x=x, y=y,
-                        text_font_size=f"{axis_title_font_size}pt",
+                        text_font_size=f"{self.cfg['axis-title-font-size']}pt",
                         text=title, text_font_style ='bold',
                         angle = 60, 
                         angle_units="deg")
@@ -446,7 +454,7 @@ class Piper():
 
                     title = 'Na+ + K+'
                     tick_label = Label(x=x, y=y,
-                        text_font_size=f"{axis_title_font_size}pt",
+                        text_font_size=f"{self.cfg['axis-title-font-size']}pt",
                         text=title, text_font_style ='bold',
                         angle = -60, 
                         angle_units="deg")
@@ -467,12 +475,12 @@ class Piper():
                 delta = 100 + gap if offset else 0
                 # Ca/Alk
                 if not offset:
-                    x = 0 - axis_title_font_size * .6 + delta
+                    x = 0 - self.cfg['axis-title-font-size'] * .6 + delta
                 else:
                     x = delta
-                y = 0 - axis_title_font_size * .8
+                y = 0 - self.cfg['axis-title-font-size'] * .8
                 tick_label = Label(x=x, y=y,
-                    text_font_size=f"{axis_title_font_size}pt",
+                    text_font_size=f"{self.cfg['axis-title-font-size']}pt",
                     text=titles[0], text_font_style ='bold')
                 self.plot.add_layout(tick_label)
                 
@@ -481,21 +489,22 @@ class Piper():
                     x = 100 - 6 - len(titles[1]) + delta
                 else:
                     x = 100 + delta
-                y = 0 - axis_title_font_size * .8
-                tick_label = Label(x=x, y=y,text_font_size=f"{axis_title_font_size}pt",
+                y = 0 - self.cfg['axis-title-font-size'] * .8
+                tick_label = Label(x=x, y=y,text_font_size=f"{self.cfg['axis-title-font-size']}pt",
                     text=titles[1], text_font_style ='bold')
                 self.plot.add_layout(tick_label)
 
                 # Mg/SO4
                 x = 50  + delta
                 y = 100 * sin60 + 2   
-                tick_label = Label(x=x, y=y,text_font_size=f"{axis_title_font_size}pt",
+                tick_label = Label(x=x, y=y,text_font_size=f"{self.cfg['axis-title-font-size']}pt",
                     text=titles[2], text_font_style ='bold')
                 self.plot.add_layout(tick_label)
 
-            draw_triangle_grids(offset=False)
-            draw_triangle_grids(offset=True)
-            draw_diamond_grid()
+            if self.cfg['show-grid']:
+                draw_triangle_grids(offset=False)
+                draw_triangle_grids(offset=True)
+                draw_diamond_grid()
             draw_axis_titles()
             self.plot.legend.click_policy="mute"
 
@@ -625,6 +634,15 @@ class Piper():
             id = group_by_options.index(self.cfg['color'])
             self.cfg['color'] = st.selectbox('Group Legend by', options=group_by_options, index=id)
             self.cfg['plot-width'] = st.number_input('Plot width', min_value= 100, max_value=2000, step=50, value=self.cfg['plot-width'])
+            self.cfg['show-grid'] = st.checkbox('Show grid', value=self.cfg['show-grid'])
+            self.cfg['show-tick-labels'] = st.checkbox('Show tick labels', value=self.cfg['show-tick-labels'])
+            if self.cfg['show-tick-labels']:
+                id = FONT_SIZES.index(self.cfg['tick-label-font-size'])
+                self.cfg['tick-label-font-size'] = st.selectbox('Tick label font size', options=FONT_SIZES, index=id)
+            id = FONT_SIZES.index(self.cfg['axis-title-font-size'])
+            self.cfg['axis-title-font-size'] = st.selectbox('Axis title label font size', options=FONT_SIZES, index=id)
+            id = IMAGE_FORMATS.index(self.cfg['image_format'])
+            self.cfg['image_format'] = st.selectbox('Image output format', options=IMAGE_FORMATS, index=id)
         with st.expander('Marker properties', expanded=True):
             # https://github.com/d3/d3-3.x-api-reference/blob/master/Ordinal-Scales.md#categorical-colors
             self.cfg['marker-size'] = st.number_input('Marker size', min_value=1, max_value=50, step=1, value=int(self.cfg['marker-size']))
@@ -670,20 +688,24 @@ class Piper():
     
 
     def show_save_file_button(self, p):
-        os.environ["PATH"] += os.pathsep + os.getcwd()
-        if st.button("Save png file", key=f'save_{random_string(5)}'):
-            filename = get_random_filename('piper', IMAGE_FILE_FORMAT)
-            p.toolbar_location = None
-            p.outline_line_color = None
+        # os.environ["PATH"] += os.pathsep + os.getcwd()
+        #if st.button("Save png file", key=f'save_{random_string(5)}'):
+        filename = get_random_filename('piper', self.cfg['image_format'])
+        p.toolbar_location = None
+        p.outline_line_color = None
+        if self.cfg['image_format'] == 'png':
             export_png(p, filename=filename)
-            flash_text(f"The Piper plot has been saved to **{filename}** and is ready for download", 'info')
-            with open(filename, "rb") as file:
-                btn = st.download_button(
-                    label="Download image",
-                    data=file,
-                    file_name=filename,
-                    mime="image/png"
-                )
+        else:
+            p.output_backend = "svg"
+            export_svgs(p, filename=filename)
+        # flash_text(f"The Piper plot has been saved to **{filename}** and is ready for download", 'info')
+        with open(filename, "rb") as file:
+            btn = st.download_button(
+                label="Download image",
+                data=file,
+                file_name=filename,
+                mime="image/png"
+            )
 
     def show_plot_footer(self, p, df:pd.DataFrame):
         with st.expander('Data', expanded=False):

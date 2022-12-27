@@ -13,14 +13,15 @@ from plots.piper import Piper
 # driver.get("https://www.google.com/")
 
 
-__version__ = '0.0.1'
+__version__ = '0.0.2'
 __author__ = 'Lukas Calmbach'
 __author_email__ = 'lcalmbach@gmail.com'
-VERSION_DATE = '2022-12-24'
+VERSION_DATE = '2022-12-27'
 MY_EMOJI = '💧'
 MY_NAME = f'Fontus'
 GIT_REPO = 'https://github.com/lcalmbach/Pyper'
 APP_URL = 'https://lcalmbach-pyper-app-netzym.streamlit.app/'
+SPLASH_IMAGE = './water-2630618-wide.jpg'
 
 def show_info_box():
     """
@@ -57,7 +58,8 @@ def main():
     st.sidebar.markdown(f'# {MY_NAME}')
     tabs = st.tabs(['About', 'Load Data', 'Plot Settings', 'Show Plot'])
     with tabs[0]:
-        st.write(ABOUT_TEXT)
+        st.image(SPLASH_IMAGE)
+        st.write(ABOUT_TEXT.format(__author_email__))
     with tabs[1]:
         st.session_state['project'].get_user_input()
         st.session_state['plot'].dataset = st.session_state['project']

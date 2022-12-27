@@ -74,19 +74,21 @@ PLOTS = ['Piper']
 
 HORIZONTAL_ALIGNEMENT_OPTIONS = ['left', 'center', 'right']
 VERTICAL_ALIGNEMENT_OPTIONS = ['top', 'middle', 'bottom']
-
-
+FONT_SIZES = [6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,22,24,26,18,30,32]
+IMAGE_FORMATS = ['png', 'svg']
 
 # texts
 ABOUT_TEXT = """## Fontus
-This App allows to generate beautiful Piper plots based on your uploaded data. You may also explore the app using the built-in demo data. If you wish to upload your own data, proceed as follows:
+This Application is part of the open-source-software family. It allows the user to generate beautiful Piper plots based on uploaded water quality data. The user may also explore the app using the built-in demo data. To upload your data, proceed as follows:
 
 1. Activate the `Load Data` tab and select the `Upload dataset` option.
-2. Format your data to the one row per sample format, each row must contain at least the following columns: station, Ca, Mg, Na, Hco3 (or Alk), So4, Cl. In addition you may include the columns K and CO3 whci will be added to the sodium and bicorbonate endpoints.
-3. Make sure the right encoding and seperator character are specified.
-4. Drag the file into the drop file area or click on the `Browse files` button and select a file using the file explorer.
-5. Verify and adjust the plot settinsg on the `Plot Settings`tab.
+2. Format your data to the 'one row per sample' format. Each row must contain the following columns: station, Ca, Mg, Na, HCO3 (or Alk), So4, Cl. In addition, you may include columns K and CO3, which will be added to the sodium and bicarbonate endpoints.
+3. Make sure the correct encoding and separator characters are specified.
+4. Drag the file into the drop file area or click the `Browse files` button and select a file using the file explorer.
+5. Verify and adjust the plot settings on the `Plot Settings tab.
 6. See your Piper plot on the `Show Plot` tab.
 
-Note that no uploaded data is stored on the server. However, we encourage all users not to upload senstive information. 
+Note that no uploaded data is stored on the server. However, we encourage all users not to upload sensitive information.
+
+This app will be extended with additional plot types and analysis methods commonly applied in water quality studies if there is sufficient interest in such a tool. Therefore, do not hesitate to contact the [author](mailto:{}) with suggestions or encountered issues.
 """
