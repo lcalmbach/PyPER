@@ -6,11 +6,12 @@ from datetime import datetime
 import time
 from config import PARAMETER_DICT
 
-def flash_text(text:str, type:str):
+
+def flash_text(text: str, type: str):
     placeholder = st.empty()
-    if type=='info':
+    if type == "info":
         placeholder.info(text)
-    elif type=='success':
+    elif type == "success":
         placeholder.success(text)
     else:
         placeholder.warning(text)
@@ -20,12 +21,12 @@ def flash_text(text:str, type:str):
 
 def get_random_filename(prefix: str, ext: str):
     # todo: add further folders
-    folder = 'images'
+    folder = "images"
     suffix = datetime.now().strftime("%y%m%d_%H%M%S")
     return f"./{folder}/{prefix}-{suffix}.{ext}"
 
 
-def add_pct_columns(df:pd.DataFrame, par_dict:dict, pmd)->pd.DataFrame:
+def add_pct_columns(df: pd.DataFrame, par_dict: dict, pmd) -> pd.DataFrame:
     """
     converts mg/L concentrations to meq/L, meq% to be used in the piper diagram
     and the ion balance.
@@ -43,7 +44,7 @@ def add_pct_columns(df:pd.DataFrame, par_dict:dict, pmd)->pd.DataFrame:
     return df
 
 
-def major_ions_complete(df:pd.DataFrame)->bool:
+def major_ions_complete(df: pd.DataFrame) -> bool:
     """return wether there are columns for all major ions:
     Na, Ca, Mg, Alk, Cl, SO4. K is optionional but is used when present.
 
@@ -53,27 +54,28 @@ def major_ions_complete(df:pd.DataFrame)->bool:
     Returns:
         bool: [description]
     """
-    ok=[False]*6
-    ok[0] = 'ca_pct' in df.columns
-    ok[1] = 'mg_pct' in df.columns
-    ok[2] = 'na_pct' in df.columns
-    ok[3] = 'cl_pct' in df.columns
-    ok[4] = ('alk_pct' in df.columns) or ('hco3_pct' in df.columns)
-    ok[5] = 'so4_pct' in df.columns
+    ok = [False] * 6
+    ok[0] = "ca_pct" in df.columns
+    ok[1] = "mg_pct" in df.columns
+    ok[2] = "na_pct" in df.columns
+    ok[3] = "cl_pct" in df.columns
+    ok[4] = ("alk_pct" in df.columns) or ("hco3_pct" in df.columns)
+    ok[5] = "so4_pct" in df.columns
     return all(ok)
+
 
 def add_meqpl_columns(data, parameters):
     for par in parameters:
         col = f"{par}_meqpl"
-        fact = 1 / PARAMETER_DICT[par]['fmw'] * abs(PARAMETER_DICT[par]['valence'])
+        fact = 1 / PARAMETER_DICT[par]["fmw"] * abs(PARAMETER_DICT[par]["valence"])
         data[col] = data[par] * fact
     return data
 
 
 def is_chemical(par: str):
-    return (par in PARAMETER_DICT.keys())
+    return par in PARAMETER_DICT.keys()
 
 
 def random_string(length):
     letters = string.ascii_lowercase
-    return ''.join(random.choice(letters) for i in range(length))
+    return "".join(random.choice(letters) for i in range(length))

@@ -1,27 +1,27 @@
+"""
+    app.py
+    ------
+    Fontus is a software dedicated to analyse and explore water quality data.
+    It allows users to upload data and generates Piper plots. More plots are
+    are planned.
+    This module contains the app menu and calls the differen analysis modules.
+"""
 import streamlit as st
 
-#from tools import *
-from config import *
+from config import ABOUT_TEXT
 from project import Project
 from plots.piper import Piper
 
-# https://stackoverflow.com/questions/65655712/how-to-fix-the-chromedriver-if-its-not-compatible-with-chrome-version
-# from selenium import webdriver
-# from webdriver_manager.chrome import ChromeDriverManager
+__version__ = "0.0.2"
+__author__ = "Lukas Calmbach"
+__author_email__ = "lcalmbach@gmail.com"
+VERSION_DATE = "2022-12-27"
+MY_EMOJI = "💧"
+MY_NAME = "Fontus"
+GIT_REPO = "https://github.com/lcalmbach/Pyper"
+APP_URL = "https://lcalmbach-pyper-app-netzym.streamlit.app/"
+SPLASH_IMAGE = "./water-2630618-wide.jpg"
 
-# driver = webdriver.Chrome(ChromeDriverManager().install())
-# driver.get("https://www.google.com/")
-
-
-__version__ = '0.0.2'
-__author__ = 'Lukas Calmbach'
-__author_email__ = 'lcalmbach@gmail.com'
-VERSION_DATE = '2022-12-27'
-MY_EMOJI = '💧'
-MY_NAME = f'Fontus'
-GIT_REPO = 'https://github.com/lcalmbach/Pyper'
-APP_URL = 'https://lcalmbach-pyper-app-netzym.streamlit.app/'
-SPLASH_IMAGE = './water-2630618-wide.jpg'
 
 def show_info_box():
     """
@@ -37,37 +37,53 @@ def show_info_box():
 
 
 def init_layout():
+    """
+    Sets the page configuration and loads the style.css stylesheet to addjust some
+    of the default Stramlit styling.
+    """
+
     st.set_page_config(
         layout="wide",
-        initial_sidebar_state = "auto", 
-        page_title = MY_NAME,
-        page_icon = MY_EMOJI,
+        initial_sidebar_state="auto",
+        page_title=MY_NAME,
+        page_icon=MY_EMOJI,
     )
     with open("./style.css") as f:
-        st.markdown('<style>{}</style>'.format(f.read()), unsafe_allow_html=True)
+        st.markdown("<style>{}</style>".format(f.read()), unsafe_allow_html=True)
+
 
 def init_settings():
-    if 'data' not in st.session_state:
-        st.session_state['project'] = Project()
-        st.session_state['plot'] = Piper(st.session_state['project'])
+    """
+    Generates the initial project and plot instances in the sessions state to
+    make it persistent.
+    """
+    if "data" not in st.session_state:
+        st.session_state["project"] = Project()
+        st.session_state["plot"] = Piper(st.session_state["project"])
+
 
 def main():
+    """
+    Allows the user to select a tab and creates the respectives analysis type 
+    instances.
+    """
     init_layout()
     init_settings()
 
-    st.sidebar.markdown(f'# {MY_NAME}')
-    tabs = st.tabs(['About', 'Load Data', 'Plot Settings', 'Show Plot'])
+    st.sidebar.markdown(f"# {MY_NAME}")
+    tabs = st.tabs(["About", "Load Data", "Plot Settings", "Show Plot"])
     with tabs[0]:
         st.image(SPLASH_IMAGE)
         st.write(ABOUT_TEXT.format(__author_email__))
     with tabs[1]:
-        st.session_state['project'].get_user_input()
-        st.session_state['plot'].dataset = st.session_state['project']
+        st.session_state["project"].get_user_input()
+        st.session_state["plot"].dataset = st.session_state["project"]
     with tabs[2]:
-        st.session_state['plot'].get_user_input()
+        st.session_state["plot"].get_user_input()
     with tabs[3]:
-        st.session_state['plot'].show_plot()
+        st.session_state["plot"].show_plot()
     show_info_box()
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     main()
