@@ -10,7 +10,7 @@ from bokeh.models import (
 )
 from bokeh.models.annotations import Title
 from bokeh.core.enums import MarkerType, LineDash
-import os
+from zipfile import ZipFile
 
 from helper import (
     get_random_filename,
@@ -79,8 +79,11 @@ class Piper:
             "show-tick-labels": True,
             "tick-label-font-size": 9,
             "axis-title-font-size": 12,
+            "save-images": False,
+            "show-data": True,
         }
         self.data = self.init_data(self.project.data)
+        self.images = []
         self.cfg["tooltips"] = self.init_tooltips()
 
     def init_tooltips(self):
@@ -141,7 +144,7 @@ class Piper:
             if self.cfg["tooltips"][key]:
                 if value["type"] == "float":
                     format_string = f"{{%0.{value['digits']}f}}"
-                elif value["type"] == "date":
+                elif value["type"] in ["date", "datetime"]:
                     format_string = f"{{%F}}"
                 else:
                     format_string = ""
@@ -154,7 +157,7 @@ class Piper:
         for key, value in self.project.fields.iterrows():
             if value["type"] == "float":
                 formatter[f"@{key}"] = "printf"
-            elif value["type"] == "date":
+            elif value["type"] in ["date", "datetime"]:
                 formatter[f"@{key}"] = "datetime"
         return formatter
 
@@ -1258,7 +1261,7 @@ class Piper:
         self.plot.border_fill_color = None
         return self.plot
 
-    def show_save_file_button(self, p):
+    def create_image_file(self, p):
         # os.environ["PATH"] += os.pathsep + os.getcwd()
         # if st.button("Save png file", key=f'save_{random_string(5)}'):
         filename = get_random_filename("piper", self.cfg["image_format"])
@@ -1269,34 +1272,58 @@ class Piper:
         else:
             p.output_backend = "svg"
             export_svgs(p, filename=filename)
+        self.images.append(filename)
         # flash_text(f"The Piper plot has been saved to **{filename}** and is ready for download", 'info')
+
+    def show_download_button(self):
+        if len(self.images) == 1:
+            filename = self.images[0]
+        else:
+            filename = get_random_filename(f"piper-{self.cfg['group-plot-by']}", 'zip')
+            zip_file = ZipFile(filename, 'w')
+            for file in self.images:
+                zip_file.write(file, file)
+            zip_file.close()
+
         with open(filename, "rb") as file:
             btn = st.download_button(
                 label="Download image", data=file, file_name=filename, mime="image/png"
             )
+    def show_data(self, p, df: pd.DataFrame):
+        if self.cfg['show-data']:
+            with st.expander("Data", expanded=False):
+                st.markdown(f"{len(df)} records")
+                st.write(df)
+                st.download_button(
+                    label="Download data as CSV",
+                    data=df.to_csv(sep=";").encode("utf-8"),
+                    file_name="fontus_piper_data.csv",
+                    mime="text/csv",
+                    key=f"save_button_{random_string(5)}",
+                )
 
-    def show_plot_footer(self, p, df: pd.DataFrame):
-        with st.expander("Data", expanded=False):
-            st.markdown(f"{len(df)} records")
-            st.write(df)
-            st.download_button(
-                label="Download data as CSV",
-                data=df.to_csv(sep=";").encode("utf-8"),
-                file_name="fontus_piper_data.csv",
-                mime="text/csv",
-                key=f"save_button_{random_string(5)}",
-            )
-        self.show_save_file_button(p)
+    def show_options(self):
+        with st.sidebar.expander('⚙️Settings'):
+            self.cfg['save-images'] = st.checkbox('Save images', value=self.cfg['save-images'])
+            self.cfg['show-data'] = st.checkbox('Show data', value=self.cfg['show-data'])
+            if self.cfg['save-images']:
+                self.show_download_button()
 
     def show_plot(self):
+        self.images = []
+        st.session_state["plot"].show_options()
         if self.cfg["group-plot-by"]:
             for item in self.project.codes[self.cfg["group-plot-by"]]:
                 df_filtered = self.data[self.data[self.cfg["group-plot-by"]] == item]
                 if len(df_filtered) > 0:
                     p = self.get_plot(df_filtered)
                     st.bokeh_chart(p)
-                    self.show_plot_footer(p, self.data)
+                    self.show_data(p, self.data)
+                    if self.cfg['save-images']:
+                        self.create_image_file(p)
         else:
             p = self.get_plot(self.data)
             st.bokeh_chart(p)
-            self.show_plot_footer(p, self.data)
+            self.show_data(p, self.data)
+            if self.cfg['save-images']:
+                self.create_image_file(p)

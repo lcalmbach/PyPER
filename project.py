@@ -8,6 +8,7 @@ from config import (
     TYPES,
     MONTH_TO_SEASON,
     SEASON_DICT,
+    HEMISPHERE_DICT,
 )
 from helper import is_chemical
 
@@ -137,7 +138,6 @@ class Project:
         if uploaded_file is not None:
             self.data = pd.read_csv(uploaded_file, sep=self.sep, encoding=self.encoding)
             self.normalize_column_headers()
-            self.fields_list = list(self.data.columns)
             self.fields = self.get_fields()
 
     def group_fields(self) -> list:
@@ -316,6 +316,14 @@ class Project:
                     )
                 if self.generate_year or self.generate_month or self.generate_season:
                     self.generate_time_columns()
+                if self.generate_season:
+                    cols = st.columns([2,5])
+                    with cols[0]:
+                        id = list(HEMISPHERE_DICT.keys()).index(self.hemisphere)
+                        self.hemisphere = st.selectbox('Hemisphere',
+                                    options=list(HEMISPHERE_DICT.keys()),
+                                    format_func=lambda x: HEMISPHERE_DICT[x],
+                                    index=id)
         self.build_code_lists()
         self.data = self.filter_data()
         st.session_state["project"] = self

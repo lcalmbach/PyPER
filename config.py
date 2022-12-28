@@ -141,7 +141,7 @@ PARAMETER_DICT = {
     "alk": {"formula": "Alk", "name": "Alk", "fmw": 50, "valence": -1, "unit": "mg/L"},
 }
 
-TYPES = ['str', 'datetime', 'float', 'int', 'bool']
+TYPES = ["str", "datetime", "float", "int", "bool"]
 MAX_LEGEND_ITEMS = 20
 STATION_IDENTIFIER_COL = "stationid"
 LATITUDE_COL = "latitude"
@@ -150,10 +150,11 @@ PLOTS = ["Piper"]
 # from: https://stackoverflow.com/questions/44124436/python-datetime-to-season
 MONTH_TO_SEASON = [month % 12 // 3 + 1 for month in range(1, 13)]
 SEASON_DICT = {
-    'n': {1: 'winter', 2: 'spring', 3: 'summer', 4: 'fall'},
-    's': {1: 'summer', 2: 'fall', 3: 'winter', 4: 'spring'}
+    "n": {1: "winter", 2: "spring", 3: "summer", 4: "fall"},
+    "s": {1: "summer", 2: "fall", 3: "winter", 4: "spring"},
 }
 
+HEMISPHERE_DICT = {"n": "Northern Hemisphere", "s": "Southern Hemisphere"}
 HORIZONTAL_ALIGNEMENT_OPTIONS = ["left", "center", "right"]
 VERTICAL_ALIGNEMENT_OPTIONS = ["top", "middle", "bottom"]
 FONT_SIZES = [
