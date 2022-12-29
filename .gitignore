@@ -1,8 +1,8 @@
 env
 docs
 work
-temp/*.*
+temp/*.png
+temp/*.svg
 __pycache__
 make_demo_data.py
 TODO.md
-data/100067.csv
