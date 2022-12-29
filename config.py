@@ -1,9 +1,17 @@
 import math
 
+# app and GUI
+TEMP_FOLDER = './temp/'
 SEPARATOR_OPTIONS = [";", ",", "\t"]
 ENCODING_OPTIONS = ["utf8", "cp1252"]
-DATA_NUM_FIELDS = {"ca", "mg", "na", "k", "cl", "so4", "hco3", "alk"}
+TYPES = ["str", "datetime", "float", "int", "bool"]
+MAX_LEGEND_ITEMS = 20
+IMAGE_FORMATS = ["png", "svg"]
 
+# DATA_NUM_FIELDS = {"ca", "mg", "na", "k", "cl", "so4", "hco3", "alk"}
+
+
+# bokeh plot options
 MARKERS = [
     "circle",
     "square",
@@ -35,6 +43,7 @@ MARKERS = [
     "y",
 ]
 
+# Parameters
 sin60 = math.sin(math.radians(60))
 cos60 = math.cos(math.radians(60))
 sin30 = math.sin(math.radians(30))
@@ -141,8 +150,7 @@ PARAMETER_DICT = {
     "alk": {"formula": "Alk", "name": "Alk", "fmw": 50, "valence": -1, "unit": "mg/L"},
 }
 
-TYPES = ["str", "datetime", "float", "int", "bool"]
-MAX_LEGEND_ITEMS = 20
+
 STATION_IDENTIFIER_COL = "stationid"
 LATITUDE_COL = "latitude"
 LONGITUDE_COL = "longitude"
@@ -180,7 +188,7 @@ FONT_SIZES = [
     30,
     32,
 ]
-IMAGE_FORMATS = ["png", "svg"]
+
 
 # texts
 ABOUT_TEXT = """## Fontus

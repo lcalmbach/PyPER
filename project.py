@@ -12,12 +12,18 @@ from config import (
 )
 from helper import is_chemical
 
+SAMPLE_DATE = "sample_date"
+LONGITUDE = "longitude"
+LATITIDE = "latitude"
+GROUP_FIELD = "group_field"
+NUM_FIELD = "numeric_parameter"
+
 SYSTEM_FIELDS = [
-    "sample_date",
-    "longitude",
-    "latitude",
-    "group_field",
-    "numeric_parameter",
+    SAMPLE_DATE,
+    LONGITUDE,
+    LATITIDE,
+    GROUP_FIELD,
+    NUM_FIELD,
 ]
 
 
@@ -33,8 +39,8 @@ class Project:
             "alk": None,
             "so4": None,
             "cl": None,
-            "latitude": None,
-            "longitude": None,
+            LATITIDE: None,
+            LONGITUDE: None,
             "ph": None,
             "wtemp": None,
             "date": None,
@@ -51,33 +57,33 @@ class Project:
         self.generate_season = False
         self.hemisphere = 'n'
 
-    @property 
+    @property
     def fields_list(self):
         return sorted(list(self.fields.reset_index()['index']))
 
     def get_fields(self):
         fields = {}
         for item in self.data.columns:
-            if item in ["date", "sample_date"]:
+            if item in ["date", SAMPLE_DATE]:
                 fields[item] = {
                     "label": "Sampling Date",
                     "type": "datetime",
                     "digits": 0,
-                    "map": "sample_date",
+                    "map": SAMPLE_DATE
                 }
-            elif item in ("longitude", "long"):
+            elif item in (LONGITUDE, "long"):
                 fields[item] = {
                     "label": "Longitude",
                     "type": "float",
                     "digits": 4,
-                    "map": "longitude",
+                    "map": LONGITUDE
                 }
-            elif item in ("latitude", "lat"):
+            elif item in (LATITIDE, "lat"):
                 fields[item] = {
                     "label": "Latitude",
                     "type": "float",
                     "digits": 4,
-                    "map": "latitude",
+                    "map": LATITIDE
                 }
             elif is_chemical(item):
                 par = PARAMETER_DICT[item]
@@ -85,21 +91,21 @@ class Project:
                     "label": par["formula"],
                     "type": "float",
                     "digits": 1,
-                    "map": item,
+                    "map": item
                 }
             elif self.data[item].dtype == float:
                 fields[item] = {
                     "label": item.title(),
                     "type": "float",
                     "digits": 4,
-                    "map": "numeric_parameter",
+                    "map": NUM_FIELD
                 }
             else:
                 fields[item] = {
                     "label": item.title(),
                     "type": "str",
                     "digits": 0,
-                    "map": "group_field",
+                    "map": GROUP_FIELD
                 }
         fields = pd.DataFrame(fields).T
         return fields
@@ -126,29 +132,32 @@ class Project:
         for col in self.data.columns:
             if col in self.column_map:
                 self.column_map[col] = col
-            if col in ["sample_date", "date"]:
+            if col in [SAMPLE_DATE, "date"]:
                 self.data[col] = pd.to_datetime(self.data[col])
             if self.data[col].dtype == "object":
                 self.data[col] = self.data[col].astype(str)
 
     def show_upload(self):
-        self.sep = st.selectbox("Seperator character", options=SEPARATOR_OPTIONS)
+        self.sep = st.selectbox("Separator character",
+                                options=SEPARATOR_OPTIONS)
         self.encoding = st.selectbox("Encoding", options=ENCODING_OPTIONS)
         uploaded_file = st.file_uploader("Upload csv file")
         if uploaded_file is not None:
-            self.data = pd.read_csv(uploaded_file, sep=self.sep, encoding=self.encoding)
+            self.data = pd.read_csv(uploaded_file, sep=self.sep,
+                                    encoding=self.encoding)
             self.normalize_column_headers()
             self.fields = self.get_fields()
 
     def group_fields(self) -> list:
         """
-        Generates a list of all fields mapped as group_field. These fields will be
-        available for grouping in plots and as filters in the navigation sidebar.
+        Generates a list of all fields mapped as group_field. These fields
+        will be available for grouping in plots and as filters in the 
+        navigation sidebar.
 
         Returns:
             list: list of group fields
         """
-        result = self.fields[self.fields["map"] == "group_field"].reset_index()
+        result = self.fields[self.fields["map"] == GROUP_FIELD].reset_index()
         result = list(result["index"])
         return result
 
@@ -160,19 +169,18 @@ class Project:
         filter = {}
         with st.sidebar.expander("🔎Filter", expanded=True):
             for code, list in self.codes.items():
-                filter[code] = st.multiselect(code, options=list)
+                filter[code] = st.multiselect(label=code.title(), options=list)
                 if filter[code]:
                     self.data = self.data[self.data[code].isin(filter[code])]
-        return self.data
 
     def sys_col_name(self, sys_field_name: str) -> str:
         """
-        Searches for the field for a given system field (latitude, date etc.) and
-        returns the column name.
+        Searches for the field for a given system field (latitude, date etc.)
+        and returns the column name.
 
         Args:
-            sys_field_name (str): sys field such as latitude, date, longitude or
-                                  chemical parameter
+            sys_field_name (str): sys field such as latitude, date, longitude
+            or chemical parameter
 
         Returns:
             str: column name
@@ -192,24 +200,24 @@ class Project:
         """
 
         if self.generate_year:
-            self.data["year"] = self.data[self.sys_col_name("sample_date")].dt.year
+            self.data["year"] = self.data[self.sys_col_name(SAMPLE_DATE)].dt.year
             self.add_field(
                 {
                     "col": ["year"],
                     "label": ["Year"],
                     "type": ["int"],
                     "digits": [0],
-                    "map": ["group_field"],
+                    "map": [GROUP_FIELD],
                 })
         if self.generate_month:
-            self.data["month"] = self.data[self.sys_col_name("sample_date")].dt.month
+            self.data["month"] = self.data[self.sys_col_name(SAMPLE_DATE)].dt.month
             self.add_field(
                 {
                     "col": ['month'],
                     "label": ["Month"],
                     "type": ["int"],
                     "digits": [0],
-                    "map": ["group_field"],
+                    "map": [GROUP_FIELD],
                 })
         if self.generate_season:
             self.data['season'] = self.data['month'].apply(lambda x: (MONTH_TO_SEASON[x-1]))
@@ -220,7 +228,7 @@ class Project:
                     "label": ["Season"],
                     "type": ["str"],
                     "digits": [0],
-                    "map": ["group_field"],
+                    "map": [GROUP_FIELD],
                 })
 
     def get_user_input(self):
@@ -275,7 +283,7 @@ class Project:
                 st.markdown("Map")
                 map_fields = SYSTEM_FIELDS + list(PARAMETER_DICT.keys())
                 for col in list(self.fields.reset_index()["index"]):
-                    id = map_fields.index(col) + 1 if col in map_fields else 0
+                    id = map_fields.index(self.fields.loc[col, "map"]) + 1 if self.fields.loc[col, "map"] in map_fields else 0
                     self.fields.loc[col, "map"] = st.selectbox(
                         label=" ",
                         options=[None] + map_fields,
@@ -299,7 +307,7 @@ class Project:
                         key=col + "4",
                     )
 
-            if self.is_mapped("sample_date"):
+            if self.is_mapped(SAMPLE_DATE):
                 st.markdown("Generate time aggregation columns")
                 cols = st.columns([1, 1, 1, 4])
                 with cols[0]:
@@ -325,5 +333,5 @@ class Project:
                                     format_func=lambda x: HEMISPHERE_DICT[x],
                                     index=id)
         self.build_code_lists()
-        self.data = self.filter_data()
+        self.filter_data()
         st.session_state["project"] = self

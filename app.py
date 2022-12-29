@@ -7,10 +7,16 @@
     This module contains the app menu and calls the differen analysis modules.
 """
 import streamlit as st
+from pathlib import Path
+import os
+from datetime import datetime
+import time
 
-from config import ABOUT_TEXT
+from config import ABOUT_TEXT, TEMP_FOLDER
 from project import Project
 from plots.piper import Piper
+from helper import get_base64_encoded_image
+
 
 __version__ = "0.0.2"
 __author__ = "Lukas Calmbach"
@@ -20,8 +26,8 @@ MY_EMOJI = "💧"
 MY_NAME = "Fontus"
 GIT_REPO = "https://github.com/lcalmbach/Pyper"
 APP_URL = "https://lcalmbach-pyper-app-netzym.streamlit.app/"
-SPLASH_IMAGE = "./water-2630618-wide.jpg"
-
+SPLASH_IMAGE = "./images/water-2630618-wide.jpg"
+DOCUMENTATION_LINK = 'https://lcalmbach.github.io/fontus-help/'
 
 def show_info_box():
     """
@@ -34,6 +40,17 @@ def show_info_box():
         <a href="{GIT_REPO}">git-repo</a><br>
         """
     st.sidebar.markdown(impressum, unsafe_allow_html=True)
+
+
+def show_documentation_link():
+    """
+    Shows a link to the documentation site. The image needs to be byte-encoded
+    """
+
+    header_html = "<br><a href = '{}' target = '_blank'><img src='data:image/png;base64, {}' class='img-fluid' style='width:45px;height:45px;'></a><br>".format(
+        DOCUMENTATION_LINK,
+        get_base64_encoded_image("./images/documentation.png"))
+    st.sidebar.markdown(header_html, unsafe_allow_html=True)
 
 
 def init_layout():
@@ -52,6 +69,18 @@ def init_layout():
         st.markdown("<style>{}</style>".format(f.read()), unsafe_allow_html=True)
 
 
+def cleanup_image_files():
+    now = time.mktime(datetime.now().timetuple())
+    for file in Path(TEMP_FOLDER).iterdir():
+        if file.is_file():
+            file_timestamp = os.path.getmtime(file)
+            time_since_creation_s = now - (file_timestamp / 60)
+            if time_since_creation_s > 10:
+                try:
+                    os.remove(file)
+                except:
+                    pass
+
 def init_settings():
     """
     Generates the initial project and plot instances in the sessions state to
@@ -60,6 +89,7 @@ def init_settings():
     if "data" not in st.session_state:
         st.session_state["project"] = Project()
         st.session_state["plot"] = Piper(st.session_state["project"])
+        cleanup_image_files()
 
 
 def main():
@@ -82,6 +112,7 @@ def main():
         st.session_state["plot"].get_user_input()
     with tabs[3]:
         st.session_state["plot"].show_plot()
+    show_documentation_link()
     show_info_box()
 
 

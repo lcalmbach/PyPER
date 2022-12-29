@@ -11,14 +11,20 @@ from bokeh.models import (
 from bokeh.models.annotations import Title
 from bokeh.core.enums import MarkerType, LineDash
 from zipfile import ZipFile
-
-from helper import (
-    get_random_filename,
-    add_meqpl_columns,
-    flash_text,
-    random_string
+import os
+from helper import get_random_filename, add_meqpl_columns, flash_text, random_string
+from config import (
+    TEMP_FOLDER,
+    ALL_CATIONS,
+    ALL_ANIONS,
+    HORIZONTAL_ALIGNEMENT_OPTIONS,
+    MAX_LEGEND_ITEMS,
+    FONT_SIZES,
+    IMAGE_FORMATS,
+    sin60,
+    cos60,
+    tan60,
 )
-from config import *
 from project import Project
 import colors
 
@@ -809,7 +815,12 @@ class Piper:
                 marker_type = self.cfg["marker-types"][id]
             return color, marker_type
 
-        def draw_symbol(df, marker_color, marker_type, label):
+        def draw_symbol(df: pd.DataFrame,
+                        marker_color: str,
+                        marker_type: str,
+                        label: str):
+            if type(label) != str:
+                label = str(label)
             if marker_type == "asterisk":
                 self.plot.asterisk(
                     "_x",
@@ -1107,7 +1118,7 @@ class Piper:
                     source=df,
                 )
 
-        if self.cfg["color"] == None:
+        if self.cfg["color"] is None:
             draw_symbol(
                 df,
                 colors.get_colors(self.cfg["color-palette"], 3)[0],
@@ -1245,7 +1256,7 @@ class Piper:
             title = Title()
             placeholder = f"{{{self.cfg['group-plot-by']}}}"
             if placeholder in self.cfg["plot-title"]:
-                value = df.iloc[0][self.cfg["group-plot-by"]]
+                value = str(df.iloc[0][self.cfg["group-plot-by"]])
                 title.text = self.cfg["plot-title"].replace(placeholder, value)
             else:
                 title.text = self.cfg["plot-title"]
@@ -1264,7 +1275,7 @@ class Piper:
     def create_image_file(self, p):
         # os.environ["PATH"] += os.pathsep + os.getcwd()
         # if st.button("Save png file", key=f'save_{random_string(5)}'):
-        filename = get_random_filename("piper", self.cfg["image_format"])
+        filename = get_random_filename("piper", TEMP_FOLDER, self.cfg["image_format"])
         p.toolbar_location = None
         p.outline_line_color = None
         if self.cfg["image_format"] == "png":
@@ -1273,24 +1284,41 @@ class Piper:
             p.output_backend = "svg"
             export_svgs(p, filename=filename)
         self.images.append(filename)
-        # flash_text(f"The Piper plot has been saved to **{filename}** and is ready for download", 'info')
 
     def show_download_button(self):
+        """
+        Shows a download button that will store the files included in
+        the self.images list. if there is more than 1 file, all files 
+        a zipped into 1 downloadable file.
+        """
         if len(self.images) == 1:
             filename = self.images[0]
-        else:
-            filename = get_random_filename(f"piper-{self.cfg['group-plot-by']}", 'zip')
-            zip_file = ZipFile(filename, 'w')
+        elif len(self.images) > 1:
+            prefix = f"piper-{self.cfg['group-plot-by']}"
+            filename = get_random_filename(prefix, TEMP_FOLDER, "zip")
+            zip_file = ZipFile(filename, "w")
             for file in self.images:
                 zip_file.write(file, file)
             zip_file.close()
 
         with open(filename, "rb") as file:
             btn = st.download_button(
-                label="Download image", data=file, file_name=filename, mime="image/png"
+                label="Download image",
+                data=file,
+                file_name=os.path.basename(filename),
+                mime="image/png",
             )
-    def show_data(self, p, df: pd.DataFrame):
-        if self.cfg['show-data']:
+
+    def show_data(self, df: pd.DataFrame):
+        """
+        Shows the data used in the current plot. Below the table a download 
+        button is shown which allows to save the data in a csv file.
+
+        Args:
+            df (pd.DataFrame): data used in current plot
+        """
+
+        if self.cfg["show-data"]:
             with st.expander("Data", expanded=False):
                 st.markdown(f"{len(df)} records")
                 st.write(df)
@@ -1303,27 +1331,52 @@ class Piper:
                 )
 
     def show_options(self):
-        with st.sidebar.expander('⚙️Settings'):
-            self.cfg['save-images'] = st.checkbox('Save images', value=self.cfg['save-images'])
-            self.cfg['show-data'] = st.checkbox('Show data', value=self.cfg['show-data'])
-            if self.cfg['save-images']:
-                self.show_download_button()
+        with st.sidebar.expander("⚙️Settings", expanded=True):
+            self.cfg["save-images"] = st.checkbox(
+                "Save images", value=self.cfg["save-images"]
+            )
+            self.cfg["show-data"] = st.checkbox(
+                "Show data", value=self.cfg["show-data"]
+            )
+
+    def delete_old_images(self):
+        """
+        Removes the images created in the previous run and empties 
+        the self.images list.
+        """
+        if self.images:
+            for file in self.images:
+                if os.path.isfile():
+                    os.remove(file)
+            self.images = []
 
     def show_plot(self):
-        self.images = []
-        st.session_state["plot"].show_options()
-        if self.cfg["group-plot-by"]:
-            for item in self.project.codes[self.cfg["group-plot-by"]]:
-                df_filtered = self.data[self.data[self.cfg["group-plot-by"]] == item]
-                if len(df_filtered) > 0:
-                    p = self.get_plot(df_filtered)
-                    st.bokeh_chart(p)
-                    self.show_data(p, self.data)
-                    if self.cfg['save-images']:
-                        self.create_image_file(p)
-        else:
-            p = self.get_plot(self.data)
-            st.bokeh_chart(p)
-            self.show_data(p, self.data)
-            if self.cfg['save-images']:
-                self.create_image_file(p)
+        """
+        Shows one Piper plot if group plots by is None, otherwise a plot is shown for each
+        distinct value in the column used as the group plot by parameter. Each plot can be
+        saved to file if the save images option is selected. Before each run, the
+        existing images of the last run are removed.
+        """
+
+        # delete the previously created image so images do not pile up on disk
+        self.delete_old_images()
+        self.show_options()
+        if st.sidebar.button('Plot'):
+            if self.cfg["group-plot-by"]:
+                for item in self.project.codes[self.cfg["group-plot-by"]]:
+                    df_filtered = self.data[self.data[self.cfg["group-plot-by"]] == item]
+                    if len(df_filtered) > 0:
+                        p = self.get_plot(df_filtered)
+                        st.bokeh_chart(p)
+                        self.show_data(self.data)
+                        if self.cfg["save-images"]:
+                            self.create_image_file(p)
+            else:
+                p = self.get_plot(self.data)
+                st.bokeh_chart(p)
+                self.show_data(self.data)
+                if self.cfg["save-images"]:
+                    self.create_image_file(p)
+            if self.cfg["save-images"] & len(self.images) > 0:
+                with st.sidebar:
+                    self.show_download_button()
