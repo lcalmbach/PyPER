@@ -22,35 +22,45 @@ __version__ = "0.0.2"
 __author__ = "Lukas Calmbach"
 __author_email__ = "lcalmbach@gmail.com"
 VERSION_DATE = "2022-12-27"
+LICENSE = "https://github.com/lcalmbach/fontus/blob/master/LICENSE"
 MY_EMOJI = "💧"
 MY_NAME = "Fontus"
-GIT_REPO = "https://github.com/lcalmbach/Pyper"
+GIT_REPO = "https://github.com/lcalmbach/fontus"
 APP_URL = "https://lcalmbach-pyper-app-netzym.streamlit.app/"
 SPLASH_IMAGE = "./images/water-2630618-wide.jpg"
 DOCUMENTATION_LINK = 'https://lcalmbach.github.io/fontus-help/'
+URL_GIT_LOGO = "./images/git_logo.png"
+
 
 def show_info_box():
     """
     Shows an info box the footer of the sidebar.
     """
-
-    impressum = f"""<div style="background-color:powderblue; padding: 10px;border-radius: 15px;">
-        <small>App created by <a href="mailto:{__author_email__}">{__author__}</a><br>
-        version: {__version__} ({VERSION_DATE})<br>
-        <a href="{GIT_REPO}">git-repo</a><br>
-        """
-    st.sidebar.markdown(impressum, unsafe_allow_html=True)
+    @st.cache
+    def get_impressum():
+        bin_str = get_base64_encoded_image(URL_GIT_LOGO)
+        impressum = f"""<div style="background-color:powderblue; padding: 10px;border-radius: 15px;">
+            <small>App created by {__author__} <a href="mailto:{__author_email__}">✉️</a><br>
+            version: {__version__} ({VERSION_DATE})<br>
+            <a href="{GIT_REPO}">
+                <img src="data:image/png;base64,{bin_str}" style='width:20px'/>
+            </a><a href="{LICENSE}">🎗️ License</a><br>
+            """
+        return impressum
+    st.sidebar.markdown(get_impressum(), unsafe_allow_html=True)
 
 
 def show_documentation_link():
     """
-    Shows a link to the documentation site. The image needs to be byte-encoded
+    Shows a link to the documentation site. The image needs to be byte-encoded.
     """
-
-    header_html = "<br><a href = '{}' target = '_blank'><img src='data:image/png;base64, {}' class='img-fluid' style='width:45px;height:45px;'></a><br>".format(
-        DOCUMENTATION_LINK,
-        get_base64_encoded_image("./images/documentation.png"))
-    st.sidebar.markdown(header_html, unsafe_allow_html=True)
+    @st.cache
+    def get_html_link():
+        return "<br><a href = '{}' target = '_blank'><img src='data:image/png;base64, {}' class='img-fluid' style='width:45px;height:45px;'></a><br>".format(
+            DOCUMENTATION_LINK,
+            get_base64_encoded_image("./images/documentation.png"))
+    
+    st.sidebar.markdown(get_html_link(), unsafe_allow_html=True)
 
 
 def init_layout():
@@ -111,6 +121,7 @@ def main():
     with tabs[2]:
         st.session_state["plot"].get_user_input()
     with tabs[3]:
+        st.session_state["plot"].show_options()
         st.session_state["plot"].show_plot()
     show_documentation_link()
     show_info_box()

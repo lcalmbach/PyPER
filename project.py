@@ -9,6 +9,7 @@ from config import (
     MONTH_TO_SEASON,
     SEASON_DICT,
     HEMISPHERE_DICT,
+    DEFAULT_CARBONATE_PARAMETERS_DICT,
 )
 from helper import is_chemical
 
@@ -47,6 +48,7 @@ class Project:
         }
         self.codes = {}
         self.datasource = 0
+        self.source_file = 'demo.csv'
         self.sep = ";"
         self.encoding = "utf8"
         self.data = pd.read_csv("./data/demo.csv", sep=self.sep)
@@ -56,6 +58,7 @@ class Project:
         self.generate_month = False
         self.generate_season = False
         self.hemisphere = 'n'
+        self.default_alkalinity_par = 'hco3'
 
     @property
     def fields_list(self):
@@ -147,6 +150,8 @@ class Project:
                                     encoding=self.encoding)
             self.normalize_column_headers()
             self.fields = self.get_fields()
+            self.source_file = uploaded_file.name
+            st.write(uploaded_file.name)
 
     def group_fields(self) -> list:
         """
@@ -332,6 +337,13 @@ class Project:
                                     options=list(HEMISPHERE_DICT.keys()),
                                     format_func=lambda x: HEMISPHERE_DICT[x],
                                     index=id)
+            if self.is_mapped('alk') & self.is_mapped('hco3'):
+                help_text = 'If data includes alkalinity AND HCO3-/CO3--, specify which parameter is used as the carbonate parameter for plots and calculations'
+                id = list(DEFAULT_CARBONATE_PARAMETERS_DICT.keys()).index(self.default_alkalinity_par)
+                self.default_alkalinity_par = st.selectbox('Default carbonate parameter',
+                                                options=list(DEFAULT_CARBONATE_PARAMETERS_DICT.keys()),
+                                                format_func=lambda x: DEFAULT_CARBONATE_PARAMETERS_DICT[x],
+                                                index=id, help=help_text)
         self.build_code_lists()
         self.filter_data()
         st.session_state["project"] = self

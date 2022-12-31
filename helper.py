@@ -98,7 +98,7 @@ def add_meqpl_columns(data: pd.DataFrame, parameters: list):
         if par in data.columns:
             col = f"{par}_meqpl"
             fact = 1 / PARAMETER_DICT[par]["fmw"] * abs(PARAMETER_DICT[par]["valence"])
-            data[col] = data[par] * fact
+            data.loc[:, col] = data[par] * fact
     return data
 
 
