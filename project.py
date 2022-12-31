@@ -225,7 +225,7 @@ class Project:
         Filters the self.data dataset according to the filters set in the filters 
         section of the sidebar.
         """
-        
+
         filter = {}
         with st.sidebar.expander("🔎Filter", expanded=True):
             for code, list in self.codes.items():
