@@ -8,8 +8,6 @@ TYPES = ["str", "datetime", "float", "int", "bool"]
 MAX_LEGEND_ITEMS = 20
 IMAGE_FORMATS = ["png", "svg"]
 
-# DATA_NUM_FIELDS = {"ca", "mg", "na", "k", "cl", "so4", "hco3", "alk"}
-
 
 # bokeh plot options
 MARKERS = [

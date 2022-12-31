@@ -59,6 +59,7 @@ class Project:
         self.generate_season = False
         self.hemisphere = "n"
         self.default_alkalinity_par = "hco3"
+        self.data_is_valid = True
 
     @property
     def fields_list(self):
@@ -140,16 +141,61 @@ class Project:
             if self.data[col].dtype == "object":
                 self.data[col] = self.data[col].astype(str)
 
+    def check_data(self, df: pd.DataFrame) -> bool:
+        """
+        Verifies whether the file format is valid for at least one of the
+        analysis methods and returns true/false.
+
+        Returns:
+            bool: True if format is valid
+        """
+
+        piper_required = {
+            "ca": False,
+            "mg": False,
+            "na": False,
+            self.default_alkalinity_par: False,
+            "cl": False,
+            "so4": False,
+        }
+        cols = [x.lower() for x in df.columns]
+        for col in cols:
+            if col in piper_required.keys():
+                piper_required[col] = True
+        st.write()
+        ok = all(value for value in piper_required.values())
+        return ok
+
     def show_upload(self):
+        """
+        Displays an upload field. If the user uploads a file, the content is read and verified.
+        If the file contains the required columns for at least 1 analysis method, the new data is
+        assigend to the current dataset.
+        """
+
         self.sep = st.selectbox("Separator character", options=SEPARATOR_OPTIONS)
         self.encoding = st.selectbox("Encoding", options=ENCODING_OPTIONS)
         uploaded_file = st.file_uploader("Upload csv file")
         if uploaded_file is not None:
-            self.data = pd.read_csv(uploaded_file, sep=self.sep, encoding=self.encoding)
-            self.normalize_column_headers()
-            self.fields = self.get_fields()
-            self.source_file = uploaded_file.name
-            st.write(uploaded_file.name)
+            warning = ""
+            try:
+                _df = pd.read_csv(uploaded_file, sep=self.sep, encoding=self.encoding)
+                self.data_is_valid = self.check_data(_df)
+                if self.data_is_valid:
+                    self.data = _df
+                    self.normalize_column_headers()
+                    self.fields = self.get_fields()
+                    self.source_file = uploaded_file.name
+            except:
+                self.data_is_valid = False
+                warning = "The uploaded data does not seem to be a CSV file."
+            if not self.data_is_valid:
+                warning = "The uploaded data has missing columns."
+            if warning > "":
+                warning += """ Check the documentation for the required format or download the demo dataset and format your data accordingly"""
+                st.warning(warning)
+            else:
+                st.success("✅ file was uploaded and verified")
 
     def group_fields(self) -> list:
         """
@@ -165,10 +211,21 @@ class Project:
         return result
 
     def build_code_lists(self):
+        """
+        Generates a dictionary for all fields marked as group by where the column name
+        is the key and the sorted list of unique values in the this column is the value
+        """
+
+        self.codes = {}
         for field in self.group_fields():
             self.codes[field] = sorted(list(self.data[field].unique()))
 
     def filter_data(self):
+        """
+        Filters the self.data dataset according to the filters set in the filters 
+        section of the sidebar.
+        """
+        
         filter = {}
         with st.sidebar.expander("🔎Filter", expanded=True):
             for code, list in self.codes.items():

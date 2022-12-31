@@ -46,6 +46,7 @@ def show_info_box():
             <a href="{GIT_REPO}">
                 <img src="data:image/png;base64,{bin_str}" style='width:20px'/>
             </a><a href="{LICENSE}">🎗️ License</a><br>
+            Current dataset: {st.session_state['project'].source_file}
             """
         return impressum
 
