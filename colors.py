@@ -67,8 +67,5 @@ def user_input_palette(title, plt, num):
         "Number of colors", min_value=2, max_value=max_num, value=num
     )
     cols = st.columns(2)
-    with cols[0]:
-        st.markdown(get_palette_table(palette, color_num), unsafe_allow_html=True)
-    with cols[1]:
-        st.markdown(get_colors(palette, color_num))
+    st.markdown(get_palette_table(palette, color_num), unsafe_allow_html=True)
     return palette, color_num

@@ -65,6 +65,7 @@ class Piper:
             "marker-fill-alpha": 0.8,
             "marker-line-color": "#303132",
             "color-palette": "Category20",
+            "default-color": "#1f77b4",
             "color-number": 11,
             "marker-generator": MARKER_GENERATORS[0],
             "marker-colors": [],
@@ -95,7 +96,7 @@ class Piper:
             # number of digits in tooltip concentration columns
             "tooltips_digits": 1,
             # if set to False, a plot button appears and has to be pressed to render plot
-            "auto-render": True
+            "auto-render": True,
         }
         self.data = self.init_data(prj.data)
         self.images = []
@@ -120,7 +121,8 @@ class Piper:
                     prj.default_alkalinity_par,  # alk or hco3
                     "so4",
                 ]
-                else False)
+                else False
+            )
         return tooltips
 
     def init_data(self, df):
@@ -174,7 +176,9 @@ class Piper:
         for key, value in self.project.fields.iterrows():
             # for ions, the user can choose if he wants to see mg/L, meq/L or meq%
             if self.cfg["tooltips"][key]:
-                column_is_ion = key in ALL_ANIONS[self.project.default_alkalinity_par] + ALL_CATIONS
+                column_is_ion = (
+                    key in ALL_ANIONS[self.project.default_alkalinity_par] + ALL_CATIONS
+                )
                 if column_is_ion:
                     if self.cfg["tooltips_mion_units"] == "mg/L":
                         par = key
@@ -192,9 +196,12 @@ class Piper:
                 else:
                     format_string = ""
                 if column_is_ion:
-                    tooltip = (f"{value['label']} [{self.cfg['tooltips_mion_units']}]", f"@{par}{format_string}")
+                    tooltip = (
+                        f"{value['label']} [{self.cfg['tooltips_mion_units']}]",
+                        f"@{par}{format_string}",
+                    )
                 else:
-                    tooltip = (value['label'], f"@{par}{format_string}")
+                    tooltip = (value["label"], f"@{par}{format_string}")
                 tooltips.append(tooltip)
 
                 if value["type"] == "float":
@@ -202,7 +209,6 @@ class Piper:
                 elif value["type"] in ["date", "datetime"]:
                     formatter[f"@{par}"] = "datetime"
         return tooltips, formatter
-
 
     def get_tranformed_data(self, df: pd.DataFrame):
         def transform_to_xy(df, type):
@@ -1152,7 +1158,7 @@ class Piper:
         if self.cfg["color"] is None:
             draw_symbol(
                 df,
-                colors.get_colors(self.cfg["color-palette"], 3)[0],
+                self.cfg["default-color"],
                 self.cfg["marker-types"][0],
                 "",
             )
@@ -1176,60 +1182,60 @@ class Piper:
             self.init_data(self.project.data)
         else:
             self.project = st.session_state["project"]
-        with st.expander("Plot properties", expanded=True):
+        with st.expander("Plot Properties", expanded=True):
             # title
             group_by_options = [None] + self.project.group_fields()
             self.cfg["plot-title"] = st.text_input(
                 "Plot Title", value=self.cfg["plot-title"]
             )
             self.cfg["plot-title-text-size"] = st.number_input(
-                "Plot title font size",
+                "Plot Title Font Size",
                 min_value=0.1,
                 max_value=5.0,
                 value=self.cfg["plot-title-text-size"],
             )
             id = HORIZONTAL_ALIGNEMENT_OPTIONS.index(self.cfg["plot-title-align"])
             self.cfg["plot-title-align"] = st.selectbox(
-                "Plot title alignment", options=HORIZONTAL_ALIGNEMENT_OPTIONS, index=id
+                "Plot Title Alignment", options=HORIZONTAL_ALIGNEMENT_OPTIONS, index=id
             )
             id = group_by_options.index(self.cfg["group-plot-by"])
             self.cfg["group-plot-by"] = st.selectbox(
-                "Group plot by", options=group_by_options, index=id
+                "Group Plot By", options=group_by_options, index=id
             )
             id = group_by_options.index(self.cfg["color"])
             self.cfg["color"] = st.selectbox(
-                "Group Legend by", options=group_by_options, index=id
+                "Group Legend By", options=group_by_options, index=id
             )
             self.cfg["plot-width"] = st.number_input(
-                "Plot width",
+                "Plot Width (Points)",
                 min_value=100,
                 max_value=2000,
                 step=50,
                 value=self.cfg["plot-width"],
             )
             self.cfg["show-grid"] = st.checkbox(
-                "Show grid", value=self.cfg["show-grid"]
+                "Show Grids", value=self.cfg["show-grid"]
             )
             self.cfg["show-tick-labels"] = st.checkbox(
-                "Show tick labels", value=self.cfg["show-tick-labels"]
+                "Show Tick Labels", value=self.cfg["show-tick-labels"]
             )
             if self.cfg["show-tick-labels"]:
                 id = FONT_SIZES.index(self.cfg["tick-label-font-size"])
                 self.cfg["tick-label-font-size"] = st.selectbox(
-                    "Tick label font size", options=FONT_SIZES, index=id
+                    "Tick Label Font Size", options=FONT_SIZES, index=id
                 )
             id = FONT_SIZES.index(self.cfg["axis-title-font-size"])
             self.cfg["axis-title-font-size"] = st.selectbox(
-                "Axis title label font size", options=FONT_SIZES, index=id
+                "Axis Title Label Font Size", options=FONT_SIZES, index=id
             )
             id = IMAGE_FORMATS.index(self.cfg["image-format"])
             self.cfg["image-format"] = st.selectbox(
-                "Image output format", options=IMAGE_FORMATS, index=id
+                "Image Output Format", options=IMAGE_FORMATS, index=id
             )
         with st.expander("Marker properties", expanded=True):
             # https://github.com/d3/d3-3.x-api-reference/blob/master/Ordinal-Scales.md#categorical-colors
             self.cfg["marker-size"] = st.number_input(
-                "Marker size",
+                "Marker Size (Points)",
                 min_value=1,
                 max_value=50,
                 step=1,
@@ -1239,14 +1245,30 @@ class Piper:
                 self.cfg["color-palette"],
                 self.cfg["color-number"],
             ) = colors.user_input_palette(
-                "Marker color palette",
+                "Marker Color Palette",
                 self.cfg["color-palette"],
                 self.cfg["color-number"],
             )
+
+            color_list = colors.get_colors(
+                self.cfg["color-palette"], self.cfg["color-number"]
+            )
+            id = (
+                color_list.index(self.cfg["default-color"])
+                if self.cfg["default-color"] in color_list
+                else color_list[0]
+            )
+            self.cfg["default-color"] = st.selectbox(
+                "Default Color",
+                options=color_list,
+                index=id,
+            )
+
             id = MARKER_GENERATORS.index(self.cfg["marker-generator"])
             self.cfg["marker-generator"] = st.selectbox(
                 "Marker generator algorithm", options=MARKER_GENERATORS, index=id
             )
+
             self.cfg["marker-fill-alpha"] = st.number_input(
                 "Marker fill opacity",
                 min_value=0.0,
@@ -1268,7 +1290,7 @@ class Piper:
                     value=self.cfg["tooltips"][key],
                     key=key + "cb",
                 )
-            cols = st.columns([2,1,4])
+            cols = st.columns([2, 1, 4])
             with cols[0]:
                 unit_options = ["mg/L", "meq/L", "meq%"]
                 id = unit_options.index(self.cfg["tooltips_mion_units"])
@@ -1408,7 +1430,7 @@ class Piper:
 
         # delete the previously created image so images do not pile up on disk
         self.delete_old_images()
-        if self.cfg['auto-render']:
+        if self.cfg["auto-render"]:
             run_ok = True
         else:
             run_ok = st.sidebar.button("Plot")
