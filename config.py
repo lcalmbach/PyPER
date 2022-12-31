@@ -1,7 +1,7 @@
 import math
 
 # app and GUI
-TEMP_FOLDER = './temp/'
+TEMP_FOLDER = "./temp/"
 SEPARATOR_OPTIONS = [";", ",", "\t"]
 ENCODING_OPTIONS = ["utf8", "cp1252"]
 TYPES = ["str", "datetime", "float", "int", "bool"]
@@ -51,11 +51,8 @@ COS30 = math.cos(math.radians(30))
 TAN60 = math.tan(math.radians(60))
 
 ALL_CATIONS = ("ca", "mg", "na", "k")
-ALL_ANIONS = {
-        'hco3': ("so4", "cl", "hco3", "co3"),
-        'alk': ("so4", "cl", "alk")
-}
-DEFAULT_CARBONATE_PARAMETERS_DICT = {'hco3': 'HCO3- + CO3--', 'alk': 'Alkalinity'}
+ALL_ANIONS = {"hco3": ("so4", "cl", "hco3", "co3"), "alk": ("so4", "cl", "alk")}
+DEFAULT_CARBONATE_PARAMETERS_DICT = {"hco3": "HCO3- + CO3--", "alk": "Alkalinity"}
 
 CALCIUM_ID = 4
 MAGNESIUM_ID = 7
@@ -66,7 +63,6 @@ CHLORID_ID = 8
 ALKALINITY_ID = 10
 BICARBONATE_ID = 11
 CARBONATE_ID = 12
-
 
 
 MAJOR_IONS = [
@@ -153,13 +149,7 @@ PARAMETER_DICT = {
         "valence": -2,
         "unit": "mg/L",
     },
-    "alk": {
-        "formula": "Alk",
-        "name": "Alk",
-        "fmw": 50,
-        "valence": -1,
-        "unit": "mg/L"
-    },
+    "alk": {"formula": "Alk", "name": "Alk", "fmw": 50, "valence": -1, "unit": "mg/L"},
 }
 
 

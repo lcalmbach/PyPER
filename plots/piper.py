@@ -1266,11 +1266,11 @@ class Piper:
 
             id = MARKER_GENERATORS.index(self.cfg["marker-generator"])
             self.cfg["marker-generator"] = st.selectbox(
-                "Marker generator algorithm", options=MARKER_GENERATORS, index=id
+                "Marker Generator Algorithm", options=MARKER_GENERATORS, index=id
             )
 
             self.cfg["marker-fill-alpha"] = st.number_input(
-                "Marker fill opacity",
+                "Marker Fill Opacity",
                 min_value=0.0,
                 max_value=1.0,
                 step=0.1,
@@ -1295,11 +1295,11 @@ class Piper:
                 unit_options = ["mg/L", "meq/L", "meq%"]
                 id = unit_options.index(self.cfg["tooltips_mion_units"])
                 self.cfg["tooltips_mion_units"] = st.selectbox(
-                    "Unit for major ions:", unit_options, id
+                    "Unit for Major Ions:", unit_options, id
                 )
             with cols[1]:
                 self.cfg["tooltips_digits"] = st.number_input(
-                    "Digits for concentration units:", self.cfg["tooltips_digits"]
+                    "Digits for Concentration Units:", self.cfg["tooltips_digits"]
                 )
 
     def get_plot(self, df):
@@ -1403,10 +1403,10 @@ class Piper:
                 "Save images", value=self.cfg["save-images"]
             )
             self.cfg["show-data"] = st.checkbox(
-                "Show data", value=self.cfg["show-data"]
+                "Show Data", value=self.cfg["show-data"]
             )
             self.cfg["auto-render"] = st.checkbox(
-                "Auto render plots", value=self.cfg["auto-render"]
+                "Auto Render Plots", value=self.cfg["auto-render"]
             )
 
     def delete_old_images(self):

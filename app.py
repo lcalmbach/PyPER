@@ -18,17 +18,17 @@ from plots.piper import Piper
 from helper import get_base64_encoded_image
 
 
-__version__ = "0.0.2"
+__version__ = "0.0.3"
 __author__ = "Lukas Calmbach"
 __author_email__ = "lcalmbach@gmail.com"
-VERSION_DATE = "2022-12-27"
+VERSION_DATE = "2022-12-31"
 LICENSE = "https://github.com/lcalmbach/fontus/blob/master/LICENSE.txt"
 MY_EMOJI = "💧"
 MY_NAME = "Fontus"
 GIT_REPO = "https://github.com/lcalmbach/fontus"
 APP_URL = "https://lcalmbach-pyper-app-netzym.streamlit.app/"
 SPLASH_IMAGE = "./images/water-2630618-wide.jpg"
-DOCUMENTATION_LINK = 'https://lcalmbach.github.io/fontus-help/'
+DOCUMENTATION_LINK = "https://lcalmbach.github.io/fontus-help/"
 URL_GIT_LOGO = "./images/git_logo.png"
 
 
@@ -36,6 +36,7 @@ def show_info_box():
     """
     Shows an info box the footer of the sidebar.
     """
+
     @st.cache
     def get_impressum():
         bin_str = get_base64_encoded_image(URL_GIT_LOGO)
@@ -47,6 +48,7 @@ def show_info_box():
             </a><a href="{LICENSE}">🎗️ License</a><br>
             """
         return impressum
+
     st.sidebar.markdown(get_impressum(), unsafe_allow_html=True)
 
 
@@ -54,12 +56,13 @@ def show_documentation_link():
     """
     Shows a link to the documentation site. The image needs to be byte-encoded.
     """
+
     @st.cache
     def get_html_link():
         return "<br><a href = '{}' target = '_blank'><img src='data:image/png;base64, {}' class='img-fluid' style='width:45px;height:45px;'></a><br>".format(
-            DOCUMENTATION_LINK,
-            get_base64_encoded_image("./images/documentation.png"))
-    
+            DOCUMENTATION_LINK, get_base64_encoded_image("./images/documentation.png")
+        )
+
     st.sidebar.markdown(get_html_link(), unsafe_allow_html=True)
 
 
@@ -91,6 +94,7 @@ def cleanup_image_files():
                 except:
                     pass
 
+
 def init_settings():
     """
     Generates the initial project and plot instances in the sessions state to
@@ -104,7 +108,7 @@ def init_settings():
 
 def main():
     """
-    Allows the user to select a tab and creates the respectives analysis type 
+    Allows the user to select a tab and creates the respectives analysis type
     instances.
     """
     init_layout()

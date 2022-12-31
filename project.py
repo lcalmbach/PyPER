@@ -48,7 +48,7 @@ class Project:
         }
         self.codes = {}
         self.datasource = 0
-        self.source_file = 'demo.csv'
+        self.source_file = "demo.csv"
         self.sep = ";"
         self.encoding = "utf8"
         self.data = pd.read_csv("./data/demo.csv", sep=self.sep)
@@ -57,12 +57,12 @@ class Project:
         self.generate_year = False
         self.generate_month = False
         self.generate_season = False
-        self.hemisphere = 'n'
-        self.default_alkalinity_par = 'hco3'
+        self.hemisphere = "n"
+        self.default_alkalinity_par = "hco3"
 
     @property
     def fields_list(self):
-        return sorted(list(self.fields.reset_index()['index']))
+        return sorted(list(self.fields.reset_index()["index"]))
 
     def get_fields(self):
         fields = {}
@@ -72,21 +72,21 @@ class Project:
                     "label": "Sampling Date",
                     "type": "datetime",
                     "digits": 0,
-                    "map": SAMPLE_DATE
+                    "map": SAMPLE_DATE,
                 }
             elif item in (LONGITUDE, "long"):
                 fields[item] = {
                     "label": "Longitude",
                     "type": "float",
                     "digits": 4,
-                    "map": LONGITUDE
+                    "map": LONGITUDE,
                 }
             elif item in (LATITIDE, "lat"):
                 fields[item] = {
                     "label": "Latitude",
                     "type": "float",
                     "digits": 4,
-                    "map": LATITIDE
+                    "map": LATITIDE,
                 }
             elif is_chemical(item):
                 par = PARAMETER_DICT[item]
@@ -94,21 +94,21 @@ class Project:
                     "label": par["formula"],
                     "type": "float",
                     "digits": 1,
-                    "map": item
+                    "map": item,
                 }
             elif self.data[item].dtype == float:
                 fields[item] = {
                     "label": item.title(),
                     "type": "float",
                     "digits": 4,
-                    "map": NUM_FIELD
+                    "map": NUM_FIELD,
                 }
             else:
                 fields[item] = {
                     "label": item.title(),
                     "type": "str",
                     "digits": 0,
-                    "map": GROUP_FIELD
+                    "map": GROUP_FIELD,
                 }
         fields = pd.DataFrame(fields).T
         return fields
@@ -141,13 +141,11 @@ class Project:
                 self.data[col] = self.data[col].astype(str)
 
     def show_upload(self):
-        self.sep = st.selectbox("Separator character",
-                                options=SEPARATOR_OPTIONS)
+        self.sep = st.selectbox("Separator character", options=SEPARATOR_OPTIONS)
         self.encoding = st.selectbox("Encoding", options=ENCODING_OPTIONS)
         uploaded_file = st.file_uploader("Upload csv file")
         if uploaded_file is not None:
-            self.data = pd.read_csv(uploaded_file, sep=self.sep,
-                                    encoding=self.encoding)
+            self.data = pd.read_csv(uploaded_file, sep=self.sep, encoding=self.encoding)
             self.normalize_column_headers()
             self.fields = self.get_fields()
             self.source_file = uploaded_file.name
@@ -156,7 +154,7 @@ class Project:
     def group_fields(self) -> list:
         """
         Generates a list of all fields mapped as group_field. These fields
-        will be available for grouping in plots and as filters in the 
+        will be available for grouping in plots and as filters in the
         navigation sidebar.
 
         Returns:
@@ -195,7 +193,7 @@ class Project:
         return result.iloc[0]["index"]
 
     def add_field(self, data: dict):
-        df = pd.DataFrame.from_dict(data).set_index('col')
+        df = pd.DataFrame.from_dict(data).set_index("col")
         self.fields = pd.concat([self.fields, df])
 
     def generate_time_columns(self):
@@ -213,28 +211,35 @@ class Project:
                     "type": ["int"],
                     "digits": [0],
                     "map": [GROUP_FIELD],
-                })
+                }
+            )
         if self.generate_month:
             self.data["month"] = self.data[self.sys_col_name(SAMPLE_DATE)].dt.month
             self.add_field(
                 {
-                    "col": ['month'],
+                    "col": ["month"],
                     "label": ["Month"],
                     "type": ["int"],
                     "digits": [0],
                     "map": [GROUP_FIELD],
-                })
+                }
+            )
         if self.generate_season:
-            self.data['season'] = self.data['month'].apply(lambda x: (MONTH_TO_SEASON[x-1]))
-            self.data['season_expr'] = self.data['season'].apply(lambda x: (SEASON_DICT[self.hemisphere][x]))
+            self.data["season"] = self.data["month"].apply(
+                lambda x: (MONTH_TO_SEASON[x - 1])
+            )
+            self.data["season_expr"] = self.data["season"].apply(
+                lambda x: (SEASON_DICT[self.hemisphere][x])
+            )
             self.add_field(
                 {
-                    "col": ['season'],
+                    "col": ["season"],
                     "label": ["Season"],
                     "type": ["str"],
                     "digits": [0],
                     "map": [GROUP_FIELD],
-                })
+                }
+            )
 
     def get_user_input(self):
         data_options = ["Demo data", "Upload dataset"]
@@ -244,11 +249,11 @@ class Project:
         self.datasource = data_options.index(self.datasource)
         if self.datasource > 0:
             self.show_upload()
-        with st.expander("Preview data", expanded=True):
+        with st.expander("Preview Data File", expanded=True):
             st.markdown(f"{len(self.data)} records")
             st.write(self.data)
             st.download_button(
-                label="Download data as CSV",
+                label="Download Data as CSV",
                 data=self.data.to_csv(sep=";").encode("utf-8"),
                 file_name="fontus_data.csv",
                 mime="text/csv",
@@ -288,7 +293,11 @@ class Project:
                 st.markdown("Map")
                 map_fields = SYSTEM_FIELDS + list(PARAMETER_DICT.keys())
                 for col in list(self.fields.reset_index()["index"]):
-                    id = map_fields.index(self.fields.loc[col, "map"]) + 1 if self.fields.loc[col, "map"] in map_fields else 0
+                    id = (
+                        map_fields.index(self.fields.loc[col, "map"]) + 1
+                        if self.fields.loc[col, "map"] in map_fields
+                        else 0
+                    )
                     self.fields.loc[col, "map"] = st.selectbox(
                         label=" ",
                         options=[None] + map_fields,
@@ -313,7 +322,7 @@ class Project:
                     )
 
             if self.is_mapped(SAMPLE_DATE):
-                st.markdown("Generate time aggregation columns")
+                st.markdown("Generate Time Aggregation Columns")
                 cols = st.columns([1, 1, 1, 4])
                 with cols[0]:
                     self.generate_year = st.checkbox(
@@ -321,29 +330,36 @@ class Project:
                     )
                 with cols[1]:
                     self.generate_month = st.checkbox(
-                        label="Month column", value=self.generate_month
+                        label="Month Column", value=self.generate_month
                     )
                 with cols[2]:
                     self.generate_season = st.checkbox(
-                        label="Season column", value=self.generate_season
+                        label="Season Column", value=self.generate_season
                     )
                 if self.generate_year or self.generate_month or self.generate_season:
                     self.generate_time_columns()
                 if self.generate_season:
-                    cols = st.columns([2,5])
+                    cols = st.columns([2, 5])
                     with cols[0]:
                         id = list(HEMISPHERE_DICT.keys()).index(self.hemisphere)
-                        self.hemisphere = st.selectbox('Hemisphere',
-                                    options=list(HEMISPHERE_DICT.keys()),
-                                    format_func=lambda x: HEMISPHERE_DICT[x],
-                                    index=id)
-            if self.is_mapped('alk') & self.is_mapped('hco3'):
-                help_text = 'If data includes alkalinity AND HCO3-/CO3--, specify which parameter is used as the carbonate parameter for plots and calculations'
-                id = list(DEFAULT_CARBONATE_PARAMETERS_DICT.keys()).index(self.default_alkalinity_par)
-                self.default_alkalinity_par = st.selectbox('Default carbonate parameter',
-                                                options=list(DEFAULT_CARBONATE_PARAMETERS_DICT.keys()),
-                                                format_func=lambda x: DEFAULT_CARBONATE_PARAMETERS_DICT[x],
-                                                index=id, help=help_text)
+                        self.hemisphere = st.selectbox(
+                            "Hemisphere",
+                            options=list(HEMISPHERE_DICT.keys()),
+                            format_func=lambda x: HEMISPHERE_DICT[x],
+                            index=id,
+                        )
+            if self.is_mapped("alk") & self.is_mapped("hco3"):
+                help_text = "If data includes alkalinity AND HCO3-/CO3--, please specify which parameter is used as the carbonate parameter for plots and calculations"
+                id = list(DEFAULT_CARBONATE_PARAMETERS_DICT.keys()).index(
+                    self.default_alkalinity_par
+                )
+                self.default_alkalinity_par = st.selectbox(
+                    "Default carbonate parameter",
+                    options=list(DEFAULT_CARBONATE_PARAMETERS_DICT.keys()),
+                    format_func=lambda x: DEFAULT_CARBONATE_PARAMETERS_DICT[x],
+                    index=id,
+                    help=help_text,
+                )
         self.build_code_lists()
         self.filter_data()
         st.session_state["project"] = self
