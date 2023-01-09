@@ -28,6 +28,7 @@ from config import (
 )
 from project import Project
 import colors
+from plots.fontus_plot import FontusPlot
 
 gap = 20
 figure_padding_left = 10
@@ -43,64 +44,14 @@ grid_line_pattern = "dotted"
 legend_location = "top_right"
 arrow_length = 5
 arrow_size = 5
-MARKER_GENERATORS = ["1) symbol, 2) color", "1) color, 2) symbol", "color+symbol"]
 
 
-class Piper:
+class Piper(FontusPlot):
+
     def __init__(self, prj: Project):
-        self.data = pd.DataFrame()
-        self.project = prj
-
-    @property
-    def project(self):
-        return self._project
-
-    @project.setter
-    def project(self, prj):
-        self._project = prj
-        self.cfg = {
-            "group-plot-by": None,
-            "color": None,
-            "marker-size": 8,
-            "marker-fill-alpha": 0.8,
-            "marker-line-color": "#303132",
-            "color-palette": "Category20",
-            "default-color": "#1f77b4",
-            "color-number": 11,
-            "marker-generator": MARKER_GENERATORS[0],
-            "marker-colors": [],
-            "marker-types": [
-                "circle",
-                "square",
-                "triangle",
-                "diamond",
-                "inverted_triangle",
-            ],
-            "tooltips": {},
-            "plot-width": 800,
-            "plot-title": "",
-            "plot-title-text-size": 1.0,
-            "plot-title-align": "center",
-            "plot-title-font": "arial",
-            "image-format": "png",
-            "show-grid": True,
-            "show-tick-labels": True,
-            "tick-label-font-size": 9,
-            "axis-title-font-size": 12,
-            # if true images will be saved automatically after each render
-            "save-images": False,
-            # if set to True, the plot data will be shown in a table below the plot
-            "show-data": True,
-            # unit for major ions in tooltips
-            "tooltips_mion_units": "mg/L",
-            # number of digits in tooltip concentration columns
-            "tooltips_digits": 1,
-            # if set to False, a plot button appears and has to be pressed to render plot
-            "auto-render": True,
-        }
-        self.data = self.init_data(prj.data)
-        self.images = []
-        self.cfg["tooltips"] = self.init_tooltips(prj)
+        super().__init__(prj, type="piper")
+        self.cfg['x_col'] = '_x'
+        self.cfg['y_col'] = '_y'
 
     def init_tooltips(self, prj: Project):
         tooltips = {}
@@ -164,7 +115,6 @@ class Piper:
                 / (self.data["sum_cations_meqpl"] + self.data["sum_anions_meqpl"])
                 * 100
             )
-
             return self.data
         else:
             st.write("data is not complete")
@@ -222,7 +172,11 @@ class Piper:
                 pct_array = _df[ions_list + ["index"]].to_numpy()
                 offset = 0
             else:
-                ions_list = ["hco3_pct", "cl_pct", "so4_pct"]
+                ions_list = [
+                    f"{self.project.default_alkalinity_par}_pct",
+                    "cl_pct",
+                    "so4_pct",
+                ]
                 if "co3_pct" in self.cfg["anion_cols"]:
                     _df = df.reset_index()[self.cfg["anion_cols"] + ["index"]]
                     _df["hco3_pct"] = _df["hco3_pct"] + _df["co3_pct"]
@@ -258,7 +212,7 @@ class Piper:
                         "index": row[index_col],
                         "_x": x + offset,
                         "_y": y,
-                        "type": type[0:1],
+                        "_type": type[0:1],
                     },
                     ignore_index=True,
                 )
@@ -289,7 +243,7 @@ class Piper:
                         "index": anions.reset_index().iloc[i]["index"],
                         "_x": prx,
                         "_y": pry,
-                        "type": "p",
+                        "_type": "p",
                     },
                     ignore_index=True,
                 )
@@ -301,10 +255,13 @@ class Piper:
         cations_df = transform_to_xy(df, "cations")
         anions_df = transform_to_xy(df, "anions")
         projected_df = projected_point(anions_df, cations_df)
-        df_xy = pd.concat([cations_df, anions_df, projected_df], ignore_index=True)
+        df_xy = pd.concat(
+            [cations_df, anions_df, projected_df],
+            ignore_index=True
+        )
         return df_xy
 
-    def draw_triangles(self):
+    def draw_triangles(self, p):
         x1 = [0, 100, 50, 0]
         y1 = [0, 0, SIN60 * 100, 0]
 
@@ -319,15 +276,16 @@ class Piper:
             SIN60 * (100 + gap),
             SIN60 * gap,
         ]
-        self.plot.axis.visible = False
-        self.plot.grid.visible = False
+        p.axis.visible = False
+        p.grid.visible = False
 
-        self.plot.line(x1, y1, line_width=1, color=line_color)
-        self.plot.line(x2, y2, line_width=1, color=line_color)
-        self.plot.line(x4, y4, line_width=1, color=line_color)
+        p.line(x1, y1, line_width=1, color=line_color)
+        p.line(x2, y2, line_width=1, color=line_color)
+        p.line(x4, y4, line_width=1, color=line_color)
+        return p
 
-    def draw_axis(self):
-        def draw_xaxis_base(offset: bool):
+    def draw_axis(self, p):
+        def draw_xaxis_base(offset: bool, p):
             y = [0, -tick_len * SIN60]
             for i in range(1, 5):
                 delta = (100 + gap) if offset else 0
@@ -335,7 +293,7 @@ class Piper:
                     x = [i * 20 + delta, i * 20 - tick_len * COS60 + delta]
                 else:
                     x = [i * 20 + delta, i * 20 + tick_len * COS60 + delta]
-                self.plot.line(x, y, line_width=1, color=line_color)
+                p.line(x, y, line_width=1, color=line_color)
                 text = str(i * 20) if offset else str(100 - i * 20)
                 tick_label = Label(
                     x=x[1] - 2,
@@ -344,14 +302,15 @@ class Piper:
                     text=text,
                     render_mode="css",
                 )
-                self.plot.add_layout(tick_label)
+                p.add_layout(tick_label)
+                return p
 
-        def draw_triangle_left(offset: bool):
+        def draw_triangle_left(offset: bool, p):
             delta = (100 + gap) if offset else 0
             for i in range(1, 5):
                 x_tick = [delta + i * 10, delta + i * 10 - tick_len]
                 y_tick = [i * 20 * SIN60, i * 20 * SIN60]
-                self.plot.line(x_tick, y_tick, line_width=1, color=line_color)
+                p.line(x_tick, y_tick, line_width=1, color=line_color)
                 if not offset:
                     y = y_tick[1] - 3
                     x = x_tick[1] - 5
@@ -362,14 +321,15 @@ class Piper:
                         text=str(i * 20),
                         render_mode="css",
                     )
-                    self.plot.add_layout(tick_label)
+                    p.add_layout(tick_label)
+            return p
 
-        def draw_triangle_right(offset: bool):
+        def draw_triangle_right(offset: bool, p):
             delta = (100 + gap) if offset else 0
             for i in range(1, 5):
                 x_tick = [delta + 100 - i * 10, delta + 100 - i * 10 + tick_len]
                 y_tick = [i * 20 * SIN60, i * 20 * SIN60]
-                self.plot.line(x_tick, y_tick, line_width=1, color=line_color)
+                p.line(x_tick, y_tick, line_width=1, color=line_color)
                 if offset:
                     y = y_tick[1] - 3
                     x = x_tick[1] + 1
@@ -380,9 +340,10 @@ class Piper:
                         text=str(i * 20),
                         render_mode="css",
                     )
-                    self.plot.add_layout(tick_label)
+                    p.add_layout(tick_label)
+            return p
 
-        def draw_diamond_ul():
+        def draw_diamond_ul(p):
             for i in range(1, 5):
                 x_tick = [
                     50 + gap / 2 + i * 10,
@@ -392,7 +353,7 @@ class Piper:
                     (100 + gap + i * 20) * SIN60,
                     (100 + gap + i * 20) * SIN60 + tick_len * SIN60,
                 ]
-                self.plot.line(x_tick, y_tick, line_width=1, color=line_color)
+                p.line(x_tick, y_tick, line_width=1, color=line_color)
                 y = y_tick[1] - 2
                 x = x_tick[1] - 5
                 tick_label = Label(
@@ -402,9 +363,10 @@ class Piper:
                     text=str(i * 20),
                     render_mode="css",
                 )
-                self.plot.add_layout(tick_label)
+                p.add_layout(tick_label)
+            return p
 
-        def draw_diamond_ur():
+        def draw_diamond_ur(p):
             for i in range(1, 5):
                 x_tick = [
                     100 + gap / 2 + i * 10,
@@ -414,7 +376,7 @@ class Piper:
                     (200 + gap - i * 20) * SIN60,
                     (200 + gap - i * 20) * SIN60 + tick_len * SIN60,
                 ]
-                self.plot.line(x_tick, y_tick, line_width=1, color=line_color)
+                p.line(x_tick, y_tick, line_width=1, color=line_color)
                 y = y_tick[1] - 2
                 x = x_tick[1] + 1
                 tick_label = Label(
@@ -424,16 +386,17 @@ class Piper:
                     text=str(100 - i * 20),
                     render_mode="css",
                 )
-                self.plot.add_layout(tick_label)
+                p.add_layout(tick_label)
+            return p
 
-        def draw_grids():
-            def draw_triangle_grids(offset: bool):
+        def draw_grids(p):
+            def draw_triangle_grids(offset: bool, p):
                 delta = (100 + gap) if offset else 0
                 for i in range(1, 5):
                     # left-right
                     x = [i * 10 + delta, 100 - i * 10 + delta]
                     y = [i * 20 * SIN60, i * 20 * SIN60]
-                    self.plot.line(
+                    p.line(
                         x,
                         y,
                         line_width=1,
@@ -443,7 +406,7 @@ class Piper:
                     # horizontal
                     x = [i * 20 + delta, 50 + i * 10 + delta]
                     y = [0, (100 - i * 20) * SIN60]
-                    self.plot.line(
+                    p.line(
                         x,
                         y,
                         line_width=1,
@@ -453,20 +416,21 @@ class Piper:
                     # right-left
                     x = [i * 20 + delta, i * 10 + delta]
                     y = [0, i * 20 * SIN60]
-                    self.plot.line(
+                    p.line(
                         x,
                         y,
                         line_width=1,
                         color=grid_color,
                         line_dash=grid_line_pattern,
                     )
+                return p
 
-            def draw_diamond_grid():
+            def draw_diamond_grid(p):
                 for i in range(1, 5):
                     # diamond left-right
                     x = [50 + gap / 2 + i * 10, 100 + gap / 2 + i * 10]
                     y = [(100 + gap + i * 20) * SIN60, (gap + i * 20) * SIN60]
-                    self.plot.line(
+                    p.line(
                         x,
                         y,
                         line_width=1,
@@ -476,7 +440,7 @@ class Piper:
                     # diamond right-left
                     x = [100 + gap / 2 + i * 10, 50 + gap / 2 + i * 10]
                     y = [(200 + gap - i * 20) * SIN60, (100 + gap - i * 20) * SIN60]
-                    self.plot.line(
+                    p.line(
                         x,
                         y,
                         line_width=1,
@@ -486,7 +450,7 @@ class Piper:
                     # diamond horizontal top
                     x = [50 + gap / 2 + i * 10, 100 + gap / 2 + 50 - i * 10]
                     y = [(100 + gap + i * 20) * SIN60, (100 + gap + i * 20) * SIN60]
-                    self.plot.line(
+                    p.line(
                         x,
                         y,
                         line_width=1,
@@ -496,7 +460,7 @@ class Piper:
                     # diamond horizontal bottom
                     x = [100 + gap / 2 + i * 10, 100 + gap / 2 - i * 10]
                     y = [(gap + i * 20) * SIN60, (gap + i * 20) * SIN60]
-                    self.plot.line(
+                    p.line(
                         x,
                         y,
                         line_width=1,
@@ -506,12 +470,13 @@ class Piper:
                 # middle line
                 x = [50 + gap / 2, 100 + gap + 50 - gap / 2]
                 y = [(100 + gap) * SIN60, (100 + gap) * SIN60]
-                self.plot.line(
+                p.line(
                     x, y, line_width=1, color=grid_color, line_dash=grid_line_pattern
                 )
+                return p
 
-            def draw_axis_titles():
-                def draw_ca_title():
+            def draw_axis_titles(p):
+                def draw_ca_title(p):
                     x = 50 - 3
                     y = 0 - 3 - self.cfg["axis-title-font-size"]
                     xa = [x - 2, x - 2 - arrow_size]
@@ -525,8 +490,8 @@ class Piper:
                         text=title,
                         text_font_style="bold",
                     )
-                    self.plot.add_layout(tick_label)
-                    self.plot.add_layout(
+                    p.add_layout(tick_label)
+                    p.add_layout(
                         Arrow(
                             end=NormalHead(size=arrow_size),
                             line_color=line_color,
@@ -536,8 +501,9 @@ class Piper:
                             y_end=ya[0],
                         )
                     )
+                    return p
 
-                def draw_cl_title():
+                def draw_cl_title(p):
                     x = 100 + gap + 50 - 3
                     y = 0 - 3 - self.cfg["axis-title-font-size"]
                     xa = [x + 7, x + 11]
@@ -550,8 +516,8 @@ class Piper:
                         text=title,
                         text_font_style="bold",
                     )
-                    self.plot.add_layout(tick_label)
-                    self.plot.add_layout(
+                    p.add_layout(tick_label)
+                    p.add_layout(
                         Arrow(
                             end=NormalHead(size=5),
                             line_color=line_color,
@@ -561,11 +527,12 @@ class Piper:
                             y_end=ya[0],
                         )
                     )
+                    return p
 
-                def draw_mg_title():
+                def draw_mg_title(p):
                     x = 12
                     y = 44 - self.cfg["axis-title-font-size"] + 3
-                    # self.plot.circle(x=x,y=y)
+                    # p.circle(x=x,y=y)
                     xa = [x + 9 * COS60, x + 9 * COS60 + 4 * COS60]
                     ya = [y + 14 * SIN60, y + 14 * SIN60 + 4 * SIN60]
 
@@ -579,8 +546,8 @@ class Piper:
                         angle=60.5,  # not sure why 60 gives the wrong angle
                         angle_units="deg",
                     )
-                    self.plot.add_layout(tick_label)
-                    self.plot.add_layout(
+                    p.add_layout(tick_label)
+                    p.add_layout(
                         Arrow(
                             end=NormalHead(size=5),
                             line_color=line_color,
@@ -590,11 +557,11 @@ class Piper:
                             y_end=ya[1],
                         ),
                     )
+                    return p
 
-                def draw_SO4_title():
+                def draw_SO4_title(p):
                     x = 200 + gap - 25 - 13 * COS60 + 14
                     y = 50 * SIN60 - self.cfg["axis-title-font-size"] + 15 * SIN60
-                    # self.plot.circle(x=x,y=y)
                     xa = [x + 2 * COS60, x + 2 * COS60 - 4 * COS60]
                     ya = [y + 2 * SIN60, y + 2 * SIN60 + 4 * SIN60]
 
@@ -608,8 +575,8 @@ class Piper:
                         angle=-60.5,  # not sure why 60 gives the wrong angle
                         angle_units="deg",
                     )
-                    self.plot.add_layout(tick_label)
-                    self.plot.add_layout(
+                    p.add_layout(tick_label)
+                    p.add_layout(
                         Arrow(
                             end=NormalHead(size=5),
                             line_color=line_color,
@@ -619,8 +586,9 @@ class Piper:
                             y_end=ya[1],
                         ),
                     )
+                    return p
 
-                def draw_cl_so4_title():
+                def draw_cl_so4_title(p):
                     x = 50 + gap / 2 + 20 - 10
                     y = (100 + gap + 40) * SIN60
 
@@ -643,8 +611,8 @@ class Piper:
                         angle=60,  # not sure why 60 gives the wrong angle
                         angle_units="deg",
                     )
-                    self.plot.add_layout(tick_label)
-                    self.plot.add_layout(
+                    p.add_layout(tick_label)
+                    p.add_layout(
                         Arrow(
                             end=NormalHead(size=5),
                             line_color=line_color,
@@ -654,8 +622,9 @@ class Piper:
                             y_end=ya[1],
                         ),
                     )
+                    return p
 
-                def draw_ca_mg_title():
+                def draw_ca_mg_title(p):
                     x = 100 + gap + 50 - 33
                     y = (100 + gap + 70) * SIN60
 
@@ -678,8 +647,8 @@ class Piper:
                         angle=-60,
                         angle_units="deg",
                     )
-                    self.plot.add_layout(tick_label)
-                    self.plot.add_layout(
+                    p.add_layout(tick_label)
+                    p.add_layout(
                         Arrow(
                             end=NormalHead(size=5),
                             line_color=line_color,
@@ -689,8 +658,9 @@ class Piper:
                             y_end=ya[1],
                         ),
                     )
+                    return p
 
-                def draw_HCO3_CO3_title():
+                def draw_HCO3_CO3_title(p):
                     x = 100 + gap / 2 + 23
                     y = gap + 20
 
@@ -707,8 +677,8 @@ class Piper:
                         angle=60,
                         angle_units="deg",
                     )
-                    self.plot.add_layout(tick_label)
-                    self.plot.add_layout(
+                    p.add_layout(tick_label)
+                    p.add_layout(
                         Arrow(
                             end=NormalHead(size=5),
                             line_color=line_color,
@@ -718,8 +688,9 @@ class Piper:
                             y_end=ya[1],
                         ),
                     )
+                    return p
 
-                def draw_Na_K_title():
+                def draw_Na_K_title(p):
                     x = 100 + gap / 2 - 30 - 9
                     y = (80 - 3) * SIN60
 
@@ -739,8 +710,8 @@ class Piper:
                         angle=-60,
                         angle_units="deg",
                     )
-                    self.plot.add_layout(tick_label)
-                    self.plot.add_layout(
+                    p.add_layout(tick_label)
+                    p.add_layout(
                         Arrow(
                             end=NormalHead(size=5),
                             line_color=line_color,
@@ -750,17 +721,19 @@ class Piper:
                             y_end=ya[1],
                         ),
                     )
+                    return p
 
-                draw_ca_title()
-                draw_cl_title()
-                draw_mg_title()
-                draw_SO4_title()
-                draw_cl_so4_title()
-                draw_ca_mg_title()
-                draw_HCO3_CO3_title()
-                draw_Na_K_title()
+                p = draw_ca_title(p)
+                p = draw_cl_title(p)
+                p = draw_mg_title(p)
+                p = draw_SO4_title(p)
+                p = draw_cl_so4_title(p)
+                p = draw_ca_mg_title(p)
+                p = draw_HCO3_CO3_title(p)
+                p = draw_Na_K_title(p)
+                return p
 
-            def draw_main_labels(titles: list, offset: bool):
+            def draw_main_labels(titles: list, offset: bool, p):
                 delta = 100 + gap if offset else 0
                 # Ca/Alk
                 if not offset:
@@ -775,7 +748,7 @@ class Piper:
                     text=titles[0],
                     text_font_style="bold",
                 )
-                self.plot.add_layout(tick_label)
+                p.add_layout(tick_label)
 
                 # Na+K/Cl: todo: find out how the calculate the length of the text
                 if not offset:
@@ -790,7 +763,7 @@ class Piper:
                     text=titles[1],
                     text_font_style="bold",
                 )
-                self.plot.add_layout(tick_label)
+                p.add_layout(tick_label)
 
                 # Mg/SO4
                 x = 50 + delta
@@ -802,389 +775,39 @@ class Piper:
                     text=titles[2],
                     text_font_style="bold",
                 )
-                self.plot.add_layout(tick_label)
+                p.add_layout(tick_label)
+                return p
 
             if self.cfg["show-grid"]:
-                draw_triangle_grids(offset=False)
-                draw_triangle_grids(offset=True)
-                draw_diamond_grid()
-            draw_axis_titles()
-            self.plot.legend.click_policy = "mute"
+                draw_triangle_grids(False, p)
+                draw_triangle_grids(True, p)
+                draw_diamond_grid(p)
+            p = draw_axis_titles(p)
+            p.legend.click_policy = "mute"
+            return p
 
         if self.cfg["show-tick-labels"]:
-            draw_xaxis_base(offset=False)
-            draw_xaxis_base(offset=True)
-            draw_triangle_left(offset=False)
-            draw_triangle_left(offset=True)
-            draw_triangle_right(offset=False)
-            draw_triangle_right(offset=True)
-            draw_diamond_ul()
-            draw_diamond_ur()
+            p = draw_xaxis_base(False, p)
+            p = draw_xaxis_base(True, p)
+            p = draw_triangle_left(False, p)
+            p = draw_triangle_left(True, p)
+            p = draw_triangle_right(False, p)
+            p = draw_triangle_right(True, p)
+            p = draw_diamond_ul(p)
+            p = draw_diamond_ur(p)
 
-        draw_grids()
-
-    def draw_markers(self, df):
-        def color_generator(i: int):
-            all_colors = colors.get_colors(
-                self.cfg["color-palette"], self.cfg["color-number"]
-            )
-            if (
-                MARKER_GENERATORS.index(self.cfg["marker-generator"]) == 0
-            ):  # symbol first then color
-                color_id = i // len(self.cfg["marker-types"])
-                color = all_colors[color_id]
-                marker_type_id = i % len(self.cfg["marker-types"])
-                marker_type = self.cfg["marker-types"][marker_type_id]
-            elif (
-                MARKER_GENERATORS.index(self.cfg["marker-generator"]) == 1
-            ):  # color first then symbol
-                marker_type_id = i // len(self.cfg["marker-types"])
-                marker_type = self.cfg["marker-types"][marker_type_id]
-                color_id = i % len(self.cfg["marker-types"])
-                color = all_colors[color_id]
-            else:
-                serie_len = (
-                    len(self.cfg["marker-types"])
-                    if len(self.cfg["marker-types"]) < len(self.cfg["marker-types"])
-                    else len(self.cfg["marker-types"])
-                )
-                id = i % serie_len
-                color = all_colors[id]
-                marker_type = self.cfg["marker-types"][id]
-            return color, marker_type
-
-        def draw_symbol(
-            df: pd.DataFrame, marker_color: str, marker_type: str, label: str
-        ):
-            if type(label) != str:
-                label = str(label)
-            if marker_type == "asterisk":
-                self.plot.asterisk(
-                    "_x",
-                    "_y",
-                    legend_label=label,
-                    size=self.cfg["marker-size"],
-                    color=marker_color,
-                    alpha=self.cfg["marker-fill-alpha"],
-                    source=df,
-                )
-            elif marker_type == "circle":
-                self.plot.circle(
-                    "_x",
-                    "_y",
-                    legend_label=label,
-                    size=self.cfg["marker-size"],
-                    color=marker_color,
-                    line_color=self.cfg["marker-line-color"],
-                    alpha=self.cfg["marker-fill-alpha"],
-                    source=df,
-                )
-            elif marker_type == "circle_cross":
-                self.plot.circle_cross(
-                    "_x",
-                    "_y",
-                    legend_label=label,
-                    size=self.cfg["marker-size"],
-                    color=marker_color,
-                    line_color=self.cfg["marker-line-color"],
-                    alpha=self.cfg["marker-fill-alpha"],
-                    source=df,
-                )
-            elif marker_type == "circle_dot":
-                self.plot.circle_dot(
-                    "_x",
-                    "_y",
-                    legend_label=label,
-                    size=self.cfg["marker-size"],
-                    color=marker_color,
-                    line_color=self.cfg["marker-line-color"],
-                    alpha=self.cfg["marker-fill-alpha"],
-                    source=df,
-                )
-            elif marker_type == "circle_x":
-                self.plot.circle_x(
-                    "_x",
-                    "_y",
-                    legend_label=label,
-                    size=self.cfg["marker-size"],
-                    color=marker_color,
-                    line_color=self.cfg["marker-line-color"],
-                    alpha=self.cfg["marker-fill-alpha"],
-                    source=df,
-                )
-            elif marker_type == "circle_y":
-                self.plot.circle_y(
-                    "_x",
-                    "_y",
-                    legend_label=label,
-                    size=self.cfg["marker-size"],
-                    color=marker_color,
-                    line_color=self.cfg["marker-line-color"],
-                    alpha=self.cfg["marker-fill-alpha"],
-                    source=df,
-                )
-            elif marker_type == "cross":
-                self.plot.cross(
-                    "_x",
-                    "_y",
-                    legend_label=label,
-                    size=self.cfg["marker-size"],
-                    color=marker_color,
-                    line_color=self.cfg["marker-line-color"],
-                    alpha=self.cfg["marker-fill-alpha"],
-                    source=df,
-                )
-            elif marker_type == "dash":
-                self.plot.dash(
-                    "_x",
-                    "_y",
-                    legend_label=label,
-                    size=self.cfg["marker-size"],
-                    color=marker_color,
-                    line_color=self.cfg["marker-line-color"],
-                    alpha=self.cfg["marker-fill-alpha"],
-                    source=df,
-                )
-            elif marker_type == "diamond":
-                self.plot.diamond(
-                    "_x",
-                    "_y",
-                    legend_label=label,
-                    size=self.cfg["marker-size"],
-                    color=marker_color,
-                    line_color=self.cfg["marker-line-color"],
-                    alpha=self.cfg["marker-fill-alpha"],
-                    source=df,
-                )
-            elif marker_type == "diamond_cross":
-                self.plot.diamond_cross(
-                    "_x",
-                    "_y",
-                    legend_label=label,
-                    size=self.cfg["marker-size"],
-                    color=marker_color,
-                    line_color=self.cfg["marker-line-color"],
-                    alpha=self.cfg["marker-fill-alpha"],
-                    source=df,
-                )
-            elif marker_type == "diamond_dot":
-                self.plot.diamond_dot(
-                    "_x",
-                    "_y",
-                    legend_label=label,
-                    size=self.cfg["marker-size"],
-                    color=marker_color,
-                    line_color=self.cfg["marker-line-color"],
-                    alpha=self.cfg["marker-fill-alpha"],
-                    source=df,
-                )
-            elif marker_type == "dot":
-                self.plot.dot(
-                    "_x",
-                    "_y",
-                    legend_label=label,
-                    size=self.cfg["marker-size"],
-                    color=marker_color,
-                    line_color=self.cfg["marker-line-color"],
-                    alpha=self.cfg["marker-fill-alpha"],
-                    source=df,
-                )
-            elif marker_type == "hex":
-                self.plot.hex(
-                    "_x",
-                    "_y",
-                    legend_label=label,
-                    size=self.cfg["marker-size"],
-                    color=marker_color,
-                    line_color=self.cfg["marker-line-color"],
-                    alpha=self.cfg["marker-fill-alpha"],
-                    source=df,
-                )
-            elif marker_type == "hex_dot":
-                self.plot.hex_dot(
-                    "_x",
-                    "_y",
-                    legend_label=label,
-                    size=self.cfg["marker-size"],
-                    color=marker_color,
-                    line_color=self.cfg["marker-line-color"],
-                    alpha=self.cfg["marker-fill-alpha"],
-                    source=df,
-                )
-            elif marker_type == "inverted_triangle":
-                self.plot.inverted_triangle(
-                    "_x",
-                    "_y",
-                    legend_label=label,
-                    size=self.cfg["marker-size"],
-                    color=marker_color,
-                    line_color=self.cfg["marker-line-color"],
-                    alpha=self.cfg["marker-fill-alpha"],
-                    source=df,
-                )
-            elif marker_type == "plus":
-                self.plot.plus(
-                    "_x",
-                    "_y",
-                    legend_label=label,
-                    size=self.cfg["marker-size"],
-                    color=marker_color,
-                    line_color=self.cfg["marker-line-color"],
-                    alpha=self.cfg["marker-fill-alpha"],
-                    source=df,
-                )
-            elif marker_type == "square":
-                self.plot.square(
-                    "_x",
-                    "_y",
-                    legend_label=label,
-                    size=self.cfg["marker-size"],
-                    color=marker_color,
-                    line_color=self.cfg["marker-line-color"],
-                    alpha=self.cfg["marker-fill-alpha"],
-                    source=df,
-                )
-            elif marker_type == "square_cross":
-                self.plot.square_cross(
-                    "_x",
-                    "_y",
-                    legend_label=label,
-                    size=self.cfg["marker-size"],
-                    color=marker_color,
-                    line_color=self.cfg["marker-line-color"],
-                    alpha=self.cfg["marker-fill-alpha"],
-                    source=df,
-                )
-            elif marker_type == "square_dot":
-                self.plot.square_dot(
-                    "_x",
-                    "_y",
-                    legend_label=label,
-                    size=self.cfg["marker-size"],
-                    color=marker_color,
-                    line_color=self.cfg["marker-line-color"],
-                    alpha=self.cfg["marker-fill-alpha"],
-                    source=df,
-                )
-            elif marker_type == "square_pin":
-                self.plot.square_pin(
-                    "_x",
-                    "_y",
-                    legend_label=label,
-                    size=self.cfg["marker-size"],
-                    color=marker_color,
-                    line_color=self.cfg["marker-line-color"],
-                    alpha=self.cfg["marker-fill-alpha"],
-                    source=df,
-                )
-            elif marker_type == "square_x":
-                self.plot.square_x(
-                    "_x",
-                    "_y",
-                    legend_label=label,
-                    size=self.cfg["marker-size"],
-                    color=marker_color,
-                    line_color=self.cfg["marker-line-color"],
-                    alpha=self.cfg["marker-fill-alpha"],
-                    source=df,
-                )
-            elif marker_type == "star":
-                self.plot.star(
-                    "_x",
-                    "_y",
-                    legend_label=label,
-                    size=self.cfg["marker-size"],
-                    color=marker_color,
-                    line_color=self.cfg["marker-line-color"],
-                    alpha=self.cfg["marker-fill-alpha"],
-                    source=df,
-                )
-            elif marker_type == "star_dot":
-                self.plot.star_dot(
-                    "_x",
-                    "_y",
-                    legend_label=label,
-                    size=self.cfg["marker-size"],
-                    color=marker_color,
-                    line_color=self.cfg["marker-line-color"],
-                    alpha=self.cfg["marker-fill-alpha"],
-                    source=df,
-                )
-            elif marker_type == "triangle":
-                self.plot.triangle(
-                    "_x",
-                    "_y",
-                    legend_label=label,
-                    size=self.cfg["marker-size"],
-                    color=marker_color,
-                    line_color=self.cfg["marker-line-color"],
-                    alpha=self.cfg["marker-fill-alpha"],
-                    source=df,
-                )
-            elif marker_type == "triangle_dot":
-                self.plot.triangle_dot(
-                    "_x",
-                    "_y",
-                    legend_label=label,
-                    size=self.cfg["marker-size"],
-                    color=marker_color,
-                    line_color=self.cfg["marker-line-color"],
-                    alpha=self.cfg["marker-fill-alpha"],
-                    source=df,
-                )
-            elif marker_type == "x":
-                self.plot.x(
-                    "_x",
-                    "_y",
-                    legend_label=label,
-                    size=self.cfg["marker-size"],
-                    color=marker_color,
-                    line_color=self.cfg["marker-line-color"],
-                    alpha=self.cfg["marker-fill-alpha"],
-                    source=df,
-                )
-            elif marker_type == "y":
-                self.plot.y(
-                    "_x",
-                    "_y",
-                    legend_label=label,
-                    size=self.cfg["marker-size"],
-                    color=marker_color,
-                    line_color=self.cfg["marker-line-color"],
-                    alpha=self.cfg["marker-fill-alpha"],
-                    source=df,
-                )
-
-        if self.cfg["color"] is None:
-            draw_symbol(
-                df,
-                self.cfg["default-color"],
-                self.cfg["marker-types"][0],
-                "",
-            )
-            self.plot.legend.visible = False
-        else:
-            items = list(df[self.cfg["color"]].dropna().unique())
-            if len(items) > MAX_LEGEND_ITEMS:
-                warning = f"Plot has {len(items)} items, only the first {MAX_LEGEND_ITEMS} will be shown. Use filters to further reduce the number of legend-items"
-                flash_text(warning, "warning")
-                items = items[:MAX_LEGEND_ITEMS]
-            i = 0
-            for item in items:
-                color, marker_type = color_generator(i)
-                filtered_df = df[df[self.cfg["color"]] == item]
-                draw_symbol(filtered_df, color, marker_type, item)
-                i += 1
-            self.plot.legend.location = legend_location
+        p = draw_grids(p)
+        return p
 
     def get_user_input(self):
+        data = self.project.filter_data()
         if st.session_state["project"] == self.project:
-            self.init_data(self.project.data)
+            self.init_data(data)
         else:
             self.project = st.session_state["project"]
         with st.expander("Plot Properties", expanded=True):
             # title
-            group_by_options = [None] + self.project.group_fields()
+            group_by_options = [None] + self.project.group_fields
             self.cfg["plot-title"] = st.text_input(
                 "Plot Title", value=self.cfg["plot-title"]
             )
@@ -1201,10 +824,6 @@ class Piper:
             id = group_by_options.index(self.cfg["group-plot-by"])
             self.cfg["group-plot-by"] = st.selectbox(
                 "Group Plot By", options=group_by_options, index=id
-            )
-            id = group_by_options.index(self.cfg["color"])
-            self.cfg["color"] = st.selectbox(
-                "Group Legend By", options=group_by_options, index=id
             )
             self.cfg["plot-width"] = st.number_input(
                 "Plot Width (Points)",
@@ -1264,9 +883,9 @@ class Piper:
                 index=id,
             )
 
-            id = MARKER_GENERATORS.index(self.cfg["marker-generator"])
+            id = colors.MARKER_GENERATORS.index(self.cfg["marker-generator"])
             self.cfg["marker-generator"] = st.selectbox(
-                "Marker Generator Algorithm", options=MARKER_GENERATORS, index=id
+                "Marker Generator Algorithm", options=colors.MARKER_GENERATORS, index=id
             )
 
             self.cfg["marker-fill-alpha"] = st.number_input(
@@ -1303,7 +922,7 @@ class Piper:
                 )
 
     def get_plot(self, df):
-        self.plot = figure(
+        p = figure(
             width=int(self.cfg["plot-width"]),
             height=int(self.cfg["plot-width"] * SIN60),
             y_range=(
@@ -1313,7 +932,7 @@ class Piper:
             x_range=(-figure_padding_left, 200 + gap + figure_padding_right),
         )
         tooltips, formatters = self.get_tooltips()
-        self.plot.add_tools(
+        p.add_tools(
             HoverTool(
                 tooltips=tooltips,
                 formatters=formatters,
@@ -1329,85 +948,17 @@ class Piper:
                 title.text = self.cfg["plot-title"]
             title.text_font_size = f"{self.cfg['plot-title-text-size']}em"
             title.align = self.cfg["plot-title-align"]
-            self.plot.title = title
+            p.title = title
 
-        self.draw_triangles()
-        self.draw_axis()
+        p = self.draw_triangles(p)
+        p = self.draw_axis(p)
         data_transformed = self.get_tranformed_data(df)
-        self.draw_markers(data_transformed)
-        self.plot.background_fill_color = None
-        self.plot.border_fill_color = None
-        return self.plot
+        p = self.add_markers(p, data_transformed)
+        p = self.add_legend(p)
+        p.background_fill_color = None
+        p.border_fill_color = None
+        return p
 
-    def create_image_file(self, p):
-        # os.environ["PATH"] += os.pathsep + os.getcwd()
-        # if st.button("Save png file", key=f'save_{random_string(5)}'):
-        filename = get_random_filename("piper", TEMP_FOLDER, self.cfg["image-format"])
-        p.toolbar_location = None
-        p.outline_line_color = None
-        if self.cfg["image-format"] == "png":
-            export_png(p, filename=filename)
-        else:
-            p.output_backend = "svg"
-            export_svgs(p, filename=filename)
-        self.images.append(filename)
-
-    def show_download_button(self):
-        """
-        Shows a download button that will store the files included in
-        the self.images list. if there is more than 1 file, all files
-        a zipped into 1 downloadable file.
-        """
-        if len(self.images) == 1:
-            filename = self.images[0]
-        elif len(self.images) > 1:
-            prefix = f"piper-{self.cfg['group-plot-by']}"
-            filename = get_random_filename(prefix, TEMP_FOLDER, "zip")
-            zip_file = ZipFile(filename, "w")
-            for file in self.images:
-                zip_file.write(file, file)
-            zip_file.close()
-
-        with open(filename, "rb") as file:
-            btn = st.download_button(
-                label="Download image",
-                data=file,
-                file_name=os.path.basename(filename),
-                mime="image/png",
-            )
-
-    def show_data(self, df: pd.DataFrame):
-        """
-        Shows the data used in the current plot. Below the table a download
-        button is shown which allows to save the data in a csv file.
-
-        Args:
-            df (pd.DataFrame): data used in current plot
-        """
-
-        if self.cfg["show-data"]:
-            with st.expander("Data", expanded=False):
-                st.markdown(f"{len(df)} records")
-                st.write(df)
-                st.download_button(
-                    label="Download data as CSV",
-                    data=df.to_csv(sep=";").encode("utf-8"),
-                    file_name="fontus_piper_data.csv",
-                    mime="text/csv",
-                    key=f"save_button_{random_string(5)}",
-                )
-
-    def show_options(self):
-        with st.sidebar.expander("⚙️Settings", expanded=True):
-            self.cfg["save-images"] = st.checkbox(
-                "Save images", value=self.cfg["save-images"]
-            )
-            self.cfg["show-data"] = st.checkbox(
-                "Show Data", value=self.cfg["show-data"]
-            )
-            self.cfg["auto-render"] = st.checkbox(
-                "Auto Render Plots", value=self.cfg["auto-render"]
-            )
 
     def delete_old_images(self):
         """
