@@ -17,7 +17,6 @@ PREDICT_CASE_OPTIONS = [
     "Predict value for specified time",
 ]
 
-
 def set_lang():
     global lang
     # lang = helper.get_lang(lang=st.session_state.language, py_file=__file__)

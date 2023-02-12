@@ -24,10 +24,10 @@ from analysis.mann_kendall import MannKendall
 from helper import get_base64_encoded_image, load_css
 
 
-__version__ = "0.0.3"
+__version__ = "0.1.0"
 __author__ = "Lukas Calmbach"
 __author_email__ = "lcalmbach@gmail.com"
-VERSION_DATE = "2022-12-31"
+VERSION_DATE = "2022-02-12"
 LICENSE = "https://github.com/lcalmbach/fontus/blob/master/LICENSE.txt"
 MY_EMOJI = "💧"
 MY_NAME = "Fontus"
