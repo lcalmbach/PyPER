@@ -1,13 +1,36 @@
 import math
+from enum import Enum
+from helper import ExtendedEnum
 
 # app and GUI
 TEMP_FOLDER = "./temp/"
-SEPARATOR_OPTIONS = [";", ",", "\t"]
+SEPARATOR_OPTIONS = [";", ",", r"\t"]
 ENCODING_OPTIONS = ["utf8", "cp1252"]
 TYPES = ["str", "datetime", "float", "int", "bool"]
 MAX_LEGEND_ITEMS = 20
 IMAGE_FORMATS = ["png", "svg"]
+AGG_GRID_COL_HEIGHT = 30
+ALL_PLOTS = ["Piper", "Map"]
+ND_FACTOR = 0.5
+PHREEQC_UNIT_OPTIONS = ["mmol/L", "mg/L", "ppm"]
 
+TYPE_CONVERSION_DICT = {
+    "datetime64[ns]": "date",
+    "object": "str",
+    "float64": "float",
+    "int64": "int",
+}
+
+
+class AggregationFunc(Enum):
+    MEAN = "mean"
+    MIN = "min"
+    MAX = "max"
+    STD = "std"
+    COUNT = "count"
+
+
+AGGREGATION_FUNCTIONS = [ef.value for ef in AggregationFunc]
 
 # bokeh plot options
 MARKERS = [
@@ -52,109 +75,48 @@ ALL_CATIONS = ("ca", "mg", "na", "k")
 ALL_ANIONS = {"hco3": ("so4", "cl", "hco3", "co3"), "alk": ("so4", "cl", "alk")}
 DEFAULT_CARBONATE_PARAMETERS_DICT = {"hco3": "HCO3- + CO3--", "alk": "Alkalinity"}
 
-CALCIUM_ID = 4
-MAGNESIUM_ID = 7
-SODIUM_ID = 5
-POTASSIUM_ID = 6
-SULFATE_ID = 9
-CHLORID_ID = 8
-ALKALINITY_ID = 10
-BICARBONATE_ID = 11
-CARBONATE_ID = 12
+
+class ConcentrationUnits(ExtendedEnum):
+    MGPL = "mg/L"
+    UGPL = "µg/L"
+    NGPL = "ng/L"
+    MOLPL = "mol/L"
+    MMOLPL = "mmol/L"
+    UMOLPL = "µmol/L"
+    MEQPL = "meq/L"
+    MGPKG = "mg/kg"
+    UGPKG = "µg/kg"
+    GPKG = "g/kg"
 
 
-MAJOR_IONS = [
-    CALCIUM_ID,
-    MAGNESIUM_ID,
-    SODIUM_ID,
-    POTASSIUM_ID,
-    SULFATE_ID,
-    CHLORID_ID,
-    ALKALINITY_ID,
-    BICARBONATE_ID,
-    CARBONATE_ID,
-]
-
-MAJOR_ANIONS = [
-    SULFATE_ID,
-    CHLORID_ID,
-    ALKALINITY_ID,
-    BICARBONATE_ID,
-    CARBONATE_ID,
-]
-
-MAJOR_CATIONS = [
-    CALCIUM_ID,
-    MAGNESIUM_ID,
-    SODIUM_ID,
-    POTASSIUM_ID,
-]
-
-PARAMETER_DICT = {
-    "ca": {
-        "formula": "Ca++",
-        "name": "Calcium",
-        "fmw": 40.078,
-        "valence": 2,
-        "unit": "mg/L",
-    },
-    "mg": {
-        "formula": "Mg++",
-        "name": "Magnesium",
-        "fmw": 24.305,
-        "valence": 2,
-        "unit": "mg/L",
-    },
-    "na": {
-        "formula": "Na+",
-        "name": "Sodium",
-        "fmw": 22.990,
-        "valence": 1,
-        "unit": "mg/L",
-    },
-    "k": {
-        "formula": "K+",
-        "name": "Potassium",
-        "fmw": 39.098,
-        "valence": 1,
-        "unit": "mg/L",
-    },
-    "so4": {
-        "formula": "SO4++",
-        "name": "Sulfate",
-        "fmw": 96,
-        "valence": -2,
-        "unit": "mg/L",
-    },
-    "cl": {
-        "formula": "Cl-",
-        "name": "Calcium",
-        "fmw": 35.45,
-        "valence": -1,
-        "unit": "mg/L",
-    },
-    "hco3": {
-        "formula": "HCO3-",
-        "name": "Calcium",
-        "fmw": 61.0168,
-        "valence": -1,
-        "unit": "mg/L",
-    },
-    "co3": {
-        "formula": "CO3--",
-        "name": "Calcium",
-        "fmw": 60.008,
-        "valence": -2,
-        "unit": "mg/L",
-    },
-    "alk": {"formula": "Alk", "name": "Alk", "fmw": 50, "valence": -1, "unit": "mg/L"},
-}
+class SysParameterEnumObselote(ExtendedEnum):
+    CALCIUM = "ca"
+    MAGNESIUM = "mg"
+    SODIUM = "na"
+    POTASSIUM = "k"
+    CHLORID = "cl"
+    SULFATE = "so4"
+    BICARBONATE = "hco3"
+    CARBONATE = "co3"
+    ALKALINITY = "alk"
+    FLUORIDE = "f"
+    OXYGEN = "o2"
 
 
-STATION_IDENTIFIER_COL = "stationid"
-LATITUDE_COL = "latitude"
-LONGITUDE_COL = "longitude"
-PLOTS = ["Piper"]
+class CalculatorsEnum(ExtendedEnum):
+    FORMULA_WEIGHT_CONVERSION = "Formula Weight Conversion"
+    FORMULA_WEIGHT_CALCULATION = "Formula Weight Calculation"
+    IWQ = "Irrigation Water Quality"
+    SATURATION_INDEX = "Saturation Index"
+
+
+PARAMETERS_FILE = "./data/parameters.csv"
+PHREEQC_DATABASE_PATH = "./database"
+
+# STATION_IDENTIFIER_COL = "stationid"
+# LATITUDE_COL = "latitude"
+# LONGITUDE_COL = "longitude"
+# PLOTS = ["Piper"]
 # from: https://stackoverflow.com/questions/44124436/python-datetime-to-season
 MONTH_TO_SEASON = [month % 12 // 3 + 1 for month in range(1, 13)]
 SEASON_DICT = {
@@ -192,17 +154,8 @@ FONT_SIZES = [
 
 # texts
 ABOUT_TEXT = """## Fontus
-#### Discover your water quality data!
-Fontus is member of the open-source-software family. It allows the user to generate beautiful [Piper diagrams](https://en.wikipedia.org/wiki/Piper_diagram) based on uploaded water quality data. The user may also explore the app using the built-in demo data. The app is intelligent and detects fields in your data, that can be used for plot legends, plot grouping or as filters. To upload your data, proceed as follows:
+#### Discover your Water Quality Data!
+Welcome to Fontus, the comprehensive web application designed to help you explore and analyze water quality data with ease. Fontus is powered by the USGS geochemical model [PHREEQC](https://www.usgs.gov/software/phreeqc-version-3), providing you with accurate and reliable calculations to support your analysis. With Fontus, you can create visual representations of your data with [Piper](https://en.wikipedia.org/wiki/Piper_diagram) plots and maps, perform numerical analysis with the Mann Kendall trend method, and access a variety of calculators for formula weight conversion, saturation index, and water quality indices such as SAR. Whether you are a professional in the field or just starting out, Fontus provides you with the tools and resources you need to understand and analyze your water quality data. Test drive the app with the integrated demo dataset, or upload your own data for a more personalized experience. With an extensive help section, Fontus is here to guide you every step of the way. Start exploring today!
 
-1. Activate the `Load Data` tab and select the `Upload dataset` option.
-2. Format your data to the 'one row per sample' format. Each row must contain the following columns: station, Ca, Mg, Na, HCO3 (or Alk), So4, Cl. In addition, you may include columns K and CO3, which will be added to the sodium and bicarbonate endpoints.
-3. Make sure the correct encoding and separator characters are specified.
-4. Drag the file into the drop file area or click the `Browse files` button and select a file using the file explorer.
-5. Verify and adjust the plot settings on the `Plot Settings tab.
-6. See your Piper plot on the `Show Plot` tab.
-
-Note that no uploaded data is stored on the server. However, we encourage all users not to upload sensitive information.
-
-This app will be extended with additional plot types and analysis methods commonly applied in water quality studies if there is sufficient interest in such a tool. Therefore, do not hesitate to contact the [author](mailto:{}) with suggestions or encountered issues.
+Fontus is constantly evolving to meet the needs of its users. If you are a water quality professional or student, this app is here to support you with its comprehensive data analysis tools. And, if there is sufficient interest, the app will be extended with even more plot types and analysis methods. The developers of Fontus are always looking for ways to improve the app and make it even more useful to you. So, if you have suggestions or encounter any issues, don't hesitate to reach out to the [author](mailto:{}) with your feedback. Your input will help make Fontus the best it can be for you and the entire water quality community.
 """

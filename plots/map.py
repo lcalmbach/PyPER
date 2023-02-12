@@ -6,32 +6,21 @@ import xyzservices.providers as xyz
 from bokeh.tile_providers import get_provider
 from bokeh.io import export_png, export_svgs
 from bokeh.plotting import figure
-from bokeh.models import (
-    Label,
-    GMapOptions,
-    HoverTool,
-    Arrow,
-    NormalHead,
-    ColumnDataSource,
-    LinearColorMapper,
-)
+# from bokeh.models import (
+    # Label,
+    # GMapOptions,
+    # HoverTool,
+    # Arrow,
+    # NormalHead,
+    # ColumnDataSource,
+    # LinearColorMapper,
+# )
 from bokeh.models.annotations import Title
-from bokeh.core.enums import MarkerType, LegendLocation
 from zipfile import ZipFile
 import os
 from helper import get_random_filename, flash_text, random_string
-from config import (
-    TEMP_FOLDER,
-    ALL_CATIONS,
-    ALL_ANIONS,
-    HORIZONTAL_ALIGNEMENT_OPTIONS,
-    MAX_LEGEND_ITEMS,
-    FONT_SIZES,
-    IMAGE_FORMATS,
-    AGGREGATION_FUNCTIONS,
-)
-from project import Project, LONGITUDE, LATITUDE
-import colors
+from config import TEMP_FOLDER, AggregationFunc
+from project import Project, SystemFieldEnum
 from plots.fontus_plot import FontusPlot
 
 
@@ -40,6 +29,7 @@ class Map(FontusPlot):
         super().__init__(prj, type="map")
         self.cfg["x_col"] = "_x"
         self.cfg["y_col"] = "_y"
+        self.cfg["aggregation-func"] = AggregationFunc.MEAN.value
 
     # -------------------------------------------------------------------------
     # Properties
@@ -68,7 +58,8 @@ class Map(FontusPlot):
     def wgs84_to_web_mercator_df(
         self, df: pd.DataFrame, lon: str, lat: str
     ) -> pd.DataFrame:
-        """Projection of lat/long to x/y
+        """
+        Projection of lat/long to x/y
 
         Args:
             df (pd.DataFrame): input dataframe
@@ -111,7 +102,7 @@ class Map(FontusPlot):
         """
         Reduces all samples to a single point for each station. If no parameter
         is selected, only unique long, lat are returned together with all
-        tooltip fields aggregated by the selected aggregation methode (count, mean
+        tooltip fields aggregated by the selected aggregation method (count, mean
         min, max, std)
 
         Args:
@@ -122,20 +113,30 @@ class Map(FontusPlot):
                           long, lat, tooltips
         """
 
-        self.cfg["tooltips"][self.cfg["group-legend-by"]] = True
+        if self.cfg["group-legend-by"]:
+            self.cfg["tooltips"][self.cfg["group-legend-by"]] = True
+        if self.cfg["prop-marker-parameter"]:
+            self.cfg["tooltips"][self.cfg["prop-marker-parameter"]] = True
+        
         all_fields = [
             self.project.longitude_col,
             self.project.latitude_col,
         ] + self.tooltip_fields
         # todo: make sure that all_fields does not contain None
-        if None in all_fields:
-            all_fields.remove(None)
-        group_fields = [self.project.longitude_col, self.project.latitude_col] + [
+        all_fields = list(filter(None, all_fields))
+        lat_long_list = [self.project.longitude_col, self.project.latitude_col]
+        group_fields = lat_long_list + [
             x for x in self.tooltip_fields if x in self.project.group_fields
         ]
-        num_fields = list(set(all_fields).difference(group_fields))
+        group_fields = list(filter(None, group_fields))
+        # includes fields selected in tooltips only
+        group_fields = [x for x in group_fields if x in all_fields]
+        num_fields = self.project.num_fields
+        num_fields = list(filter(None, num_fields))
+        num_fields = [x for x in num_fields if (x in all_fields) and not(x in lat_long_list)]
+
         _df = data[all_fields]
-        if num_fields == []:
+        if len(num_fields) == 2:
             _df = _df.drop_duplicates()
         else:
             _df = (
@@ -184,185 +185,11 @@ class Map(FontusPlot):
         if self.cfg["plot-title"] != "":
             p.title = get_title()
 
-        p.add_tools(
-            HoverTool(
-                tooltips=tooltips,
-                formatters=formatters,
-            ),
-        )
+        
         p.add_tile(tile_provider)
         p = self.add_markers(p, plot_df)
         p = self.add_legend(p)
         return p
-
-    def get_user_input(self):
-        data = self.project.filter_data()
-        if st.session_state["project"] == self.project:
-            self.init_data(data)
-        else:
-            self.project = st.session_state["project"]
-
-        with st.expander("**Plot**", expanded=True):
-            # title
-            group_by_options = [None] + self.project.group_fields
-            self.cfg["plot-title"] = st.text_input(
-                "Plot Title", value=self.cfg["plot-title"]
-            )
-            self.cfg["plot-title-text-size"] = st.number_input(
-                "Plot Title Font Size",
-                min_value=0.1,
-                max_value=5.0,
-                value=self.cfg["plot-title-text-size"],
-            )
-            id = HORIZONTAL_ALIGNEMENT_OPTIONS.index(self.cfg["plot-title-align"])
-            self.cfg["plot-title-align"] = st.selectbox(
-                "Plot Title Alignment", options=HORIZONTAL_ALIGNEMENT_OPTIONS, index=id
-            )
-            id = group_by_options.index(self.cfg["group-plot-by"])
-            self.cfg["group-plot-by"] = st.selectbox(
-                "Group Plot By", options=group_by_options, index=id
-            )
-            id = group_by_options.index(self.cfg["color"])
-            self.cfg["color"] = st.selectbox(
-                "Group Legend by", options=group_by_options, index=id
-            )
-            self.cfg["plot-width"] = st.number_input(
-                "Plot Width (Points)",
-                min_value=100,
-                max_value=2000,
-                step=50,
-                value=self.cfg["plot-width"],
-            )
-            self.cfg["plot-height"] = st.number_input(
-                "Plot Height (Points)",
-                min_value=100,
-                max_value=2000,
-                step=50,
-                value=self.cfg["plot-height"],
-            )
-            self.cfg["show-grid"] = st.checkbox(
-                "Show Grids", value=self.cfg["show-grid"]
-            )
-            self.cfg["show-tick-labels"] = st.checkbox(
-                "Show Tick Labels", value=self.cfg["show-tick-labels"]
-            )
-            if self.cfg["show-tick-labels"]:
-                id = FONT_SIZES.index(self.cfg["tick-label-font-size"])
-                self.cfg["tick-label-font-size"] = st.selectbox(
-                    "Tick Label Font Size", options=FONT_SIZES, index=id
-                )
-            id = FONT_SIZES.index(self.cfg["axis-title-font-size"])
-            self.cfg["axis-title-font-size"] = st.selectbox(
-                "Axis Title Label Font Size", options=FONT_SIZES, index=id
-            )
-            id = IMAGE_FORMATS.index(self.cfg["image-format"])
-            self.cfg["image-format"] = st.selectbox(
-                "Image Output Format", options=IMAGE_FORMATS, index=id
-            )
-        with st.expander("**Markers**", expanded=True):
-            # https://github.com/d3/d3-3.x-api-reference/blob/master/Ordinal-Scales.md#categorical-colors
-            self.cfg["marker-size"] = st.number_input(
-                "Marker Size (Points)",
-                min_value=1,
-                max_value=50,
-                step=1,
-                value=int(self.cfg["marker-size"]),
-            )
-            (
-                self.cfg["color-palette"],
-                self.cfg["color-number"],
-            ) = colors.user_input_palette(
-                "Marker Color Palette",
-                self.cfg["color-palette"],
-                self.cfg["color-number"],
-            )
-
-            color_list = colors.get_colors(
-                self.cfg["color-palette"], self.cfg["color-number"]
-            )
-            id = (
-                color_list.index(self.cfg["default-color"])
-                if self.cfg["default-color"] in color_list
-                else color_list[0]
-            )
-            id = (
-                color_list.index(self.cfg["default-color"])
-                if self.cfg["default-color"] in color_list
-                else 0
-            )
-            self.cfg["default-color"] = st.selectbox(
-                "Default Color",
-                options=color_list,
-                index=id,
-            )
-
-            id = colors.MARKER_GENERATORS.index(self.cfg["marker-generator"])
-            self.cfg["marker-generator"] = st.selectbox(
-                "Marker Generator Algorithm", options=colors.MARKER_GENERATORS, index=id
-            )
-
-            self.cfg["marker-fill-alpha"] = st.number_input(
-                "Marker Fill Opacity",
-                min_value=0.0,
-                max_value=1.0,
-                step=0.1,
-                value=self.cfg["marker-fill-alpha"],
-            )
-            self.cfg["marker-types"] = st.multiselect(
-                "Marker types",
-                options=list(MarkerType),
-                default=self.cfg["marker-types"],
-            )
-
-        with st.expander("**Tooltips**", expanded=True):
-            if self.cfg["tooltips"] != self.project.fields_list:
-                self.cfg["tooltips"] = self.init_tooltips(self.project)
-            for key, row in self.project.fields.iterrows():
-                self.cfg["tooltips"][key] = st.checkbox(
-                    f"Show {row['label']}",
-                    value=self.cfg["tooltips"][key],
-                    key=key + "cb",
-                )
-        with st.expander("**Legend**", expanded=True):
-            self.cfg["legend-visible"] = st.checkbox(
-                label="Show Legend", value=self.cfg["legend-visible"]
-            )
-            id = list(LegendLocation).index(self.cfg["legend-location"])
-            self.cfg["legend-location"] = st.selectbox(
-                label="Legend Location", options=list(LegendLocation), index=id
-            )
-            self.cfg["legend-border-line-width"] = st.number_input(
-                label="Border-Line width (Points)",
-                min_value=1,
-                max_value=20,
-                value=self.cfg["legend-border-line-width"],
-            )
-            lblc_options = [None, "black", "grey", "darkgrey", "silver"]
-            id = lblc_options.index(self.cfg["legend-border-line-color"])
-            self.cfg["legend-border-line-color"] = st.selectbox(
-                label="Border-Line Color",
-                options=lblc_options,
-                index=id,
-            )
-            self.cfg["legend-border-line-alpha"] = st.number_input(
-                label="Border-Line Opacity",
-                min_value=0.0,
-                max_value=1.0,
-                value=float(self.cfg["legend-border-line-alpha"]),
-            )
-            lbfc_options = ["white", "grey", "silver"]
-            id = lbfc_options.index(self.cfg["legend-border-line-color"])
-            self.cfg["legend-background-fill-color"] = st.selectbox(
-                label="Background Fill Color",
-                options=lbfc_options,
-                index=id,
-            )
-            self.cfg["legend-background-fill-alpha"] = st.number_input(
-                label="Border-Line Opacity",
-                min_value=0.0,
-                max_value=1.0,
-                value=float(self.cfg["legend-background-fill-alpha"]),
-            )
 
     def create_image_file(self, p):
         # os.environ["PATH"] += os.pathsep + os.getcwd()
@@ -471,92 +298,6 @@ class Map(FontusPlot):
                 with st.sidebar:
                     self.show_download_button()
 
-    # --------------------------
-
-    def get_locations_map_cfg(self, cfg, df):
-        with st.sidebar.expander(f"⚙️ {lang['settings']}"):
-            id = (
-                list(MarkerType).index(cfg["marker"])
-                if (cfg["marker"] in MarkerType)
-                else 0
-            )
-            cfg["marker"] = st.selectbox(
-                lang["marker"], options=list(MarkerType), index=id
-            )
-            cfg["marker_color"] = st.color_picker(
-                lang["marker_color"], value=cfg["marker_color"]
-            )
-            cfg["marker-size"] = st.number_input(
-                lang["marker-size"], value=cfg["marker-size"]
-            )
-            cols = st.columns(2)
-            with cols[0]:
-                cfg["plot-width"] = st.number_input(
-                    lang["plot-width"],
-                    min_value=100,
-                    max_value=2000,
-                    value=cfg["plot-width"],
-                )
-            with cols[1]:
-                cfg["plot-height"] = st.number_input(
-                    lang["plot-height"],
-                    min_value=100,
-                    max_value=2000,
-                    value=cfg["plot-height"],
-                )
-        return cfg
-
-    def get_parameter_map_cfg(self, cfg, df):
-        with st.sidebar.expander(f"⚙️ {lang['settings']}"):
-            lst_options = [lang["color"], lang["size"]]
-            cfg["prop-size-method"] = st.radio(
-                label=lang["prop_color_size"], options=lst_options
-            ).lower()
-            stat_functions_dict = {
-                "mean": lang["mean"],
-                "min": lang["min"],
-                "max": lang["max"],
-            }
-            cfg["aggregation"] = st.radio(
-                label=lang["aggregation"],
-                options=list(stat_functions_dict.keys()),
-                format_func=lambda x: stat_functions_dict[x],
-                help=lang["aggregation_station_help"],
-            ).lower()
-            max_val = df[cn.VALUE_NUM_COL].mean() + df[cn.VALUE_NUM_COL].std() * 2
-            cfg["max_value"] = st.number_input(label=lang["max_value"], value=max_val)
-            cols = st.columns(2)
-            with cols[0]:
-                cfg["width"] = st.number_input("Width (px)", cfg["plot-width"])
-            with cols[1]:
-                cfg["height"] = st.number_input("Height (px)", cfg["plot-height"])
-
-            if cfg["prop-size-method"] == lang["size"].lower():
-                cfg["max_prop_size"] = st.number_input(
-                    label=lang["max_radius"], value=cfg["max_prop_size"]
-                )
-                cfg["min_prop_size"] = st.number_input(
-                    label=lang["min_radius"], value=cfg["min_prop_size"]
-                )
-            else:
-                cfg["lin_palette"] = st.selectbox(
-                    label=lang["min_radius"], options=helper.bokeh_palettes((256))
-                )
-                cfg["marker-size"] = st.number_input(
-                    label=lang["marker-size"],
-                    min_value=1,
-                    max_value=50,
-                    value=int(cfg["marker-size"]),
-                )
-            cfg["marker-fill-alpha"] = st.number_input(
-                label=lang["marker-fill-alpha"],
-                min_value=0.1,
-                max_value=1.0,
-                step=0.1,
-                value=float(cfg["marker-fill-alpha"]),
-            )
-        return cfg
-
     """
     def show_parameters_map(self):
         cfg = st.session_state.user.read_config(cn.MAP_ID, "default")
@@ -579,13 +320,3 @@ class Map(FontusPlot):
         # helper.show_save_file_button(p, 'key1')
         st.session_state.user.save_config(cn.MAP_ID, "default", cfg)
     """
-
-    def show_menu():
-        set_lang()
-        menu_options = lang["menu_options"]
-        menu_action = st.sidebar.selectbox(label=lang["options"], options=menu_options)
-
-        if menu_action == menu_options[0]:
-            show_locations_map()
-        elif menu_action == menu_options[1]:
-            show_parameters_map()

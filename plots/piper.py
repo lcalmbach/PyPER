@@ -1,7 +1,6 @@
 import pandas as pd
 import streamlit as st
-from bokeh.io import export_png, export_svgs
-from bokeh.plotting import figure, show
+from bokeh.plotting import figure
 from bokeh.models import (
     Label,
     HoverTool,
@@ -9,19 +8,10 @@ from bokeh.models import (
     NormalHead,
 )
 from bokeh.models.annotations import Title
-from bokeh.core.enums import MarkerType, LineDash
-from zipfile import ZipFile
 import os
-from helper import get_random_filename, add_meqpl_columns, flash_text, random_string
 from config import (
-    PARAMETER_DICT,
-    TEMP_FOLDER,
     ALL_CATIONS,
     ALL_ANIONS,
-    HORIZONTAL_ALIGNEMENT_OPTIONS,
-    MAX_LEGEND_ITEMS,
-    FONT_SIZES,
-    IMAGE_FORMATS,
     SIN60,
     COS60,
     TAN60,
@@ -47,11 +37,10 @@ arrow_size = 5
 
 
 class Piper(FontusPlot):
-
     def __init__(self, prj: Project):
         super().__init__(prj, type="piper")
-        self.cfg['x_col'] = '_x'
-        self.cfg['y_col'] = '_y'
+        self.cfg["x_col"] = "_x"
+        self.cfg["y_col"] = "_y"
 
     def init_tooltips(self, prj: Project):
         tooltips = {}
@@ -95,7 +84,7 @@ class Piper(FontusPlot):
                 & self.data[self.project.default_alkalinity_par].notnull()
             ]
             self.data.replace(to_replace=[None], value=0, inplace=True)
-            self.data = add_meqpl_columns(self.data, cations + anions)
+            self.data = self.project.add_meqpl_columns(self.data, cations + anions)
             meqpl_cations = [f"{item}_meqpl" for item in cations]
             meqpl_anions = [f"{item}_meqpl" for item in anions]
             self.data.loc[:, "sum_cations_meqpl"] = self.data[meqpl_cations].sum(axis=1)
@@ -120,12 +109,13 @@ class Piper(FontusPlot):
             st.write("data is not complete")
             return None
 
-    def get_tooltips(self):
+    def get_tooltips(self, _df):
         tooltips = []
         formatter = {}
+        digits = 2
         for key, value in self.project.fields.iterrows():
             # for ions, the user can choose if he wants to see mg/L, meq/L or meq%
-            if self.cfg["tooltips"][key]:
+            if (key in _df.columns) & (self.cfg["tooltips"][key]):
                 column_is_ion = (
                     key in ALL_ANIONS[self.project.default_alkalinity_par] + ALL_CATIONS
                 )
@@ -139,9 +129,9 @@ class Piper(FontusPlot):
                 else:
                     par = key
 
-                if value["type"] == "float":
-                    format_string = f"{{%0.{value['digits']}f}}"
-                elif value["type"] in ["date", "datetime"]:
+                if value["field_type"] == "float":
+                    format_string = f"{{%0.{digits}f}}"
+                elif value["field_type"] in ["date", "datetime"]:
                     format_string = "{%F}"
                 else:
                     format_string = ""
@@ -154,13 +144,37 @@ class Piper(FontusPlot):
                     tooltip = (value["label"], f"@{par}{format_string}")
                 tooltips.append(tooltip)
 
-                if value["type"] == "float":
+                if value["field_type"] == "float":
                     formatter[f"@{par}"] = "printf"
-                elif value["type"] in ["date", "datetime"]:
+                elif value["field_type"] in ["date", "datetime"]:
                     formatter[f"@{par}"] = "datetime"
         return tooltips, formatter
 
     def get_tranformed_data(self, df: pd.DataFrame):
+        """
+        Aggregates data by the group legend by parameter using the aggregation function.
+        Returns the aggregated data frame. this is useful if you have multiple samples per station
+        and you want to plot only one average point per station.
+
+        Args:
+            df (pd.DataFrame): _description_
+        """
+
+        def aggregate_data(_df: pd.DataFrame):
+            piper_fields = [x for x in df.columns if ("_meqpl" in x) | ("_pct" in x)]
+            fields = (
+                [self.cfg["group-legend-by"]] + self.project.num_fields + piper_fields
+            )
+            group_fields = [self.cfg["group-legend-by"]]
+            num_fields = self.project.num_fields + piper_fields
+            _df = (
+                _df[fields]
+                .groupby(group_fields)[num_fields]
+                .agg(self.cfg["aggregation-func"])
+                .reset_index()
+            )
+            return _df
+
         def transform_to_xy(df, type):
             if type == "cations":
                 ions_list = ["ca_pct", "na_pct", "mg_pct"]
@@ -207,15 +221,15 @@ class Piper(FontusPlot):
                         q = -(m * x)
                         x = (row[2] - q) / m
                     y = SIN60 * row[2]
-                df_xy = df_xy.append(
-                    {
-                        "index": row[index_col],
-                        "_x": x + offset,
-                        "_y": y,
-                        "_type": type[0:1],
-                    },
-                    ignore_index=True,
+                
+                df_pr = pd.DataFrame({
+                        "index": [row[index_col]],
+                        "_x": x + [offset],
+                        "_y": [y],
+                        "_type": [type[0:1]],
+                    }
                 )
+                df_xy = pd.concat([df_xy, df_pr], axis=0)
                 i += 1
             df_xy["index"] = df_xy["index"].astype(int)
             df_xy = df_xy.set_index("index").join(df)
@@ -238,27 +252,28 @@ class Piper(FontusPlot):
 
                 prx = (q2 - q1) / (2 * m)
                 pry = m * prx + q1
-                df_xy = df_xy.append(
-                    {
-                        "index": anions.reset_index().iloc[i]["index"],
-                        "_x": prx,
-                        "_y": pry,
-                        "_type": "p",
-                    },
-                    ignore_index=True,
+                df_pr = pd.DataFrame({
+                        "_x": [prx],
+                        "_y": [pry],
+                        "_type": ["p"],
+                        "index": [anions.reset_index().iloc[i]["index"]]
+                    }
                 )
+                df_xy = pd.concat([df_xy, df_pr], axis=0)
 
             df_xy["index"] = df_xy["index"].astype(int)
-            df_xy = df_xy.set_index("index").join(self.data)
+            df_xy = df_xy.set_index("index").join(df)
             return df_xy
 
+        # ---------------------------------------------------------------------
+        # Main
+        # ---------------------------------------------------------------------
+        if self.cfg["aggregation-func"] and self.cfg["aggregation-func"] is not None:
+            df = aggregate_data(df)
         cations_df = transform_to_xy(df, "cations")
         anions_df = transform_to_xy(df, "anions")
         projected_df = projected_point(anions_df, cations_df)
-        df_xy = pd.concat(
-            [cations_df, anions_df, projected_df],
-            ignore_index=True
-        )
+        df_xy = pd.concat([cations_df, anions_df, projected_df], ignore_index=True)
         return df_xy
 
     def draw_triangles(self, p):
@@ -303,7 +318,7 @@ class Piper(FontusPlot):
                     render_mode="css",
                 )
                 p.add_layout(tick_label)
-                return p
+            return p
 
         def draw_triangle_left(offset: bool, p):
             delta = (100 + gap) if offset else 0
@@ -799,128 +814,6 @@ class Piper(FontusPlot):
         p = draw_grids(p)
         return p
 
-    def get_user_input(self):
-        data = self.project.filter_data()
-        if st.session_state["project"] == self.project:
-            self.init_data(data)
-        else:
-            self.project = st.session_state["project"]
-        with st.expander("Plot Properties", expanded=True):
-            # title
-            group_by_options = [None] + self.project.group_fields
-            self.cfg["plot-title"] = st.text_input(
-                "Plot Title", value=self.cfg["plot-title"]
-            )
-            self.cfg["plot-title-text-size"] = st.number_input(
-                "Plot Title Font Size",
-                min_value=0.1,
-                max_value=5.0,
-                value=self.cfg["plot-title-text-size"],
-            )
-            id = HORIZONTAL_ALIGNEMENT_OPTIONS.index(self.cfg["plot-title-align"])
-            self.cfg["plot-title-align"] = st.selectbox(
-                "Plot Title Alignment", options=HORIZONTAL_ALIGNEMENT_OPTIONS, index=id
-            )
-            id = group_by_options.index(self.cfg["group-plot-by"])
-            self.cfg["group-plot-by"] = st.selectbox(
-                "Group Plot By", options=group_by_options, index=id
-            )
-            self.cfg["plot-width"] = st.number_input(
-                "Plot Width (Points)",
-                min_value=100,
-                max_value=2000,
-                step=50,
-                value=self.cfg["plot-width"],
-            )
-            self.cfg["show-grid"] = st.checkbox(
-                "Show Grids", value=self.cfg["show-grid"]
-            )
-            self.cfg["show-tick-labels"] = st.checkbox(
-                "Show Tick Labels", value=self.cfg["show-tick-labels"]
-            )
-            if self.cfg["show-tick-labels"]:
-                id = FONT_SIZES.index(self.cfg["tick-label-font-size"])
-                self.cfg["tick-label-font-size"] = st.selectbox(
-                    "Tick Label Font Size", options=FONT_SIZES, index=id
-                )
-            id = FONT_SIZES.index(self.cfg["axis-title-font-size"])
-            self.cfg["axis-title-font-size"] = st.selectbox(
-                "Axis Title Label Font Size", options=FONT_SIZES, index=id
-            )
-            id = IMAGE_FORMATS.index(self.cfg["image-format"])
-            self.cfg["image-format"] = st.selectbox(
-                "Image Output Format", options=IMAGE_FORMATS, index=id
-            )
-        with st.expander("Marker properties", expanded=True):
-            # https://github.com/d3/d3-3.x-api-reference/blob/master/Ordinal-Scales.md#categorical-colors
-            self.cfg["marker-size"] = st.number_input(
-                "Marker Size (Points)",
-                min_value=1,
-                max_value=50,
-                step=1,
-                value=int(self.cfg["marker-size"]),
-            )
-            (
-                self.cfg["color-palette"],
-                self.cfg["color-number"],
-            ) = colors.user_input_palette(
-                "Marker Color Palette",
-                self.cfg["color-palette"],
-                self.cfg["color-number"],
-            )
-
-            color_list = colors.get_colors(
-                self.cfg["color-palette"], self.cfg["color-number"]
-            )
-            id = (
-                color_list.index(self.cfg["default-color"])
-                if self.cfg["default-color"] in color_list
-                else color_list[0]
-            )
-            self.cfg["default-color"] = st.selectbox(
-                "Default Color",
-                options=color_list,
-                index=id,
-            )
-
-            id = colors.MARKER_GENERATORS.index(self.cfg["marker-generator"])
-            self.cfg["marker-generator"] = st.selectbox(
-                "Marker Generator Algorithm", options=colors.MARKER_GENERATORS, index=id
-            )
-
-            self.cfg["marker-fill-alpha"] = st.number_input(
-                "Marker Fill Opacity",
-                min_value=0.0,
-                max_value=1.0,
-                step=0.1,
-                value=self.cfg["marker-fill-alpha"],
-            )
-            self.cfg["marker-types"] = st.multiselect(
-                "Marker types",
-                options=list(MarkerType),
-                default=self.cfg["marker-types"],
-            )
-            st.markdown("Tooltips")
-            if self.cfg["tooltips"] != self.project.fields_list:
-                self.cfg["tooltips"] = self.init_tooltips(self.project)
-            for key, row in self.project.fields.iterrows():
-                self.cfg["tooltips"][key] = st.checkbox(
-                    f"Show {row['label']}",
-                    value=self.cfg["tooltips"][key],
-                    key=key + "cb",
-                )
-            cols = st.columns([2, 1, 4])
-            with cols[0]:
-                unit_options = ["mg/L", "meq/L", "meq%"]
-                id = unit_options.index(self.cfg["tooltips_mion_units"])
-                self.cfg["tooltips_mion_units"] = st.selectbox(
-                    "Unit for Major Ions:", unit_options, id
-                )
-            with cols[1]:
-                self.cfg["tooltips_digits"] = st.number_input(
-                    "Digits for Concentration Units:", self.cfg["tooltips_digits"]
-                )
-
     def get_plot(self, df):
         p = figure(
             width=int(self.cfg["plot-width"]),
@@ -931,13 +824,7 @@ class Piper(FontusPlot):
             ),
             x_range=(-figure_padding_left, 200 + gap + figure_padding_right),
         )
-        tooltips, formatters = self.get_tooltips()
-        p.add_tools(
-            HoverTool(
-                tooltips=tooltips,
-                formatters=formatters,
-            ),
-        )
+
         if self.cfg["plot-title"] != "":
             title = Title()
             placeholder = f"{{{self.cfg['group-plot-by']}}}"
@@ -957,8 +844,14 @@ class Piper(FontusPlot):
         p = self.add_legend(p)
         p.background_fill_color = None
         p.border_fill_color = None
+        tooltips, formatters = self.get_tooltips(data_transformed)
+        p.add_tools(
+            HoverTool(
+                tooltips=tooltips,
+                formatters=formatters,
+            ),
+        )
         return p
-
 
     def delete_old_images(self):
         """

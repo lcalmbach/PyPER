@@ -1,3 +1,9 @@
-streamlit==1.16.0
+streamlit>=1.16.0
 bokeh==2.4.3
 selenium==4.7.2
+pymannkendall==1.4.2
+streamlit_option_menu>=0.3.2
+streamlit_aggrid>=0.3.3
+chempy==0.8.2
+statsmodels==0.13.5
+xyzservices==2022.9.0

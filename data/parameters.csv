@@ -1,0 +1,68 @@
+key;label;description;type;cas_no;formula;formula_latex;formula_weight;valence;unit_group;default_unit;field_type;lookup;auto_match_names;phreeqc_ms
+ca;Calcium;Calcium;obs;7440-70-2;Ca;Ca^{2+};40.078;2;conc;mg/L;float;0;"[""ca"", ""calcium""]";Ca
+mg;Magnesium;Magnesium;obs;7439-95-4;Mg;Mg^{2+};24.305;2;conc;mg/L;float;0;"[""mg"", ""magnesium""]";Mg
+na;Sodium;Sodium;obs;7440-23-5;Na;Na^+;22.99;1;conc;mg/L;float;0;"[""na"", ""sodium""]";Na
+so4;Sulfate;Sulfate;obs;12772-98-4;SO4;SO4^{2-};96.056;2;conc;mg/L;float;0;"[""so4"", ""sulfate""]";S(6)
+cl;Chlorid;Chlorid;obs;22537-15-1;Cl;Cl^-;35.45;1;conc;mg/L;float;0;"[""cl"", ""chlorid""]";Cl
+hco3;Bicarbonate;Bicarbonate;obs;56240-83-6;HCO3;HCO_3 ^-;61.016;1;conc;mg/L;float;0;"[""hco3"", ""bicarbonate""]";C(+4)
+alk;Alkalinity;Alkalinity;obs;;;;50.043;1;conc;mg/L;float;0;"[""alk"", ""alkalinity""]";Alkalinity
+o2;Oxygen (gas);Oxygen (gas);obs;7782-44-7 ;O2;O_2;31.998;1;conc;mg/L;float;0;"[""o2"",""oxygen""]";
+f;Fluoride;Fluoride;obs;16984-48-8;F;F^-;18.997;1;conc;mg/L;float;0;"[""f"",""fluoride"",""fluorine""]";
+fe;Iron;Iron;obs;7439-89-6;Fe;Fe;55.845;2;conc;mg/L;float;0;"[""fe"", ""iron""]";Fe
+fe(2);Iron 2+;Iron 2+;obs;7439-89-6;Fe;Fe^{2+};55.845;2;conc;mg/L;float;0;"[""fe2""]";Fe(+2)
+fe(3);Iron 3+;Iron 3+;obs;7439-89-6;Fe;Fe^{3+};55.845;3;conc;mg/L;float;0;"[""fe3""]";Fe(+3)
+mn;Manganese;Manganese;obs;7439-96-5;Mn;Mn;54.938;2;conc;µg/L;float;0;"[""mn"", ""manganese""]";Mn
+zn;Zinc;Zinc;obs;7440-66-6;Zn;Zn^{2+};65.39;2;conc;µg/L;float;0;"[""zn"", ""zinc""]";Zn
+cu;Copper;Copper;obs;7440-50-8;Cu;Cu;63.54600143;1;conc;µg/L;float;0;"[""cu"", ""copper""]";Cu
+cr;Chromium;Chromium;obs;7440-47-3;Cr;Cr;;1;conc;µg/L;float;0;"[""cr"", ""chromium""]";Cr
+nh4;Ammonium;Ammonium;obs;92075-50-8;NH4;;18.02000046;1;conc;mg/L;float;0;"[""nh4"", ""ammonium""]";
+br;Bromide;Bromide;obs;7726-95-6;Br;;79.90399933;-1;conc;mg/L;float;0;"[""br"", ""bromide""]";
+si;Silica;Silica;obs;7631-86-9 ;SiO2;;60.08430099;0;conc;mg/L;float;0;"[""si"", ""silica""]";Si
+i;Iodide;Iodide;obs;7553-56-2;I;;126.9045029;-1;conc;mg/L;float;0;"[""i"", ""Iodide""]";
+ch4;Methane (gas);Methane (gas);obs;74-82-8;CH4;;16.04276085;0;conc;mg/L;float;0;"[""ch4""]";
+cs;Cesium;Cesium;obs;7440-46-2;Cs;;132.9053955;1;conc;µg/L;float;0;"[""cs"", ""cesium""]";
+cd;Cadmium;Cadmium;obs;7440-43-9;Cd;;112.4100037;2;conc;µg/L;float;0;"[""cd""]";Cd
+b;Boron;Boron;obs;7440-42-8;B;;10.81099987;-1;conc;mg/L;float;0;"[""b""]";B
+ba;Barium;Barium;obs;7440-39-3;Ba;;137.3269958;2;conc;mg/L;float;0;"[""ba""]";Ba
+co;Cobalt;Cobalt;obs;7440-48-4;Co;;58.93;1;conc;µg/L;float;0;"[""co""]";Co
+as;Arsenic;Arsenic;obs;7440-38-2;As;;74.91999817;3;conc;µg/L;float;0;"[""as""]";
+ar;Argon;Argon;obs;7440-37-1;Ar;;39.94800186;0;conc;mg/L;float;0;"[""ar""]";
+sr;Strontium;Strontium;obs;7440-24-6;Sr;;87.62000275;2;conc;mg/L;float;0;"[""sr"", ""strontium""]";Sr
+ag;Silver;Silver;obs;7440-22-4;Ag;;107.8700027;0;conc;µg/L;float;0;"[""ag"", ""silver""]";
+rb;Rubidium;Rubidium;obs;7440-17-7;Rb;;85.46779633;1;conc;µg/L;float;0;"[""rb"", ""rubidium""]";
+ni;Nickel;Nickel;obs;7440-02-0;Ni;;58.69340134;2;conc;µg/L;float;0;"[""ni"", ""nickel""]";
+Hg;Mercury;Mercury;obs;7439-97-6;Hg;;201.6000061;0;conc;µg/L;float;0;"[""hg""]";
+li;Lithium;Lithium;obs;7439-93-2;Li;Li;6.199999809;1;conc;µg/L;float;0;"[""li""]";Li
+pb;Lead;Lead;obs;7439-92-1;Pb;Pb;207.1999969;0;conc;µg/L;float;0;"[""pb""]";Pb
+al;Aluminum;Aluminum;obs;7429-90-5;Al;Al;26.98154068;3;conc;µg/L;float;0;"[""al""]";Al
+h2;Hydrogen (gas);Hydrogen (gas);obs;1333-74-0;H2;H_2;2.015880108;0;conc;mg/L;float;0;"[""h2""]";
+co2;Carbon Dioxide (gas);Carbon Dioxide (gas);obs;124-38-9;CO2;CO_2;44.00979996;0;conc;mg/L;float;0;"[""co2""]";
+co3;Carbonate;Carbonate;obs;12144-05-7;CO3;CO_3 ^{2-};60.00920105;-2;conc;mg/L;float;0;"[""co3""]";
+no3;Nitrate;Nitrate;obs;12033-49-7;NO3;NO_3 ^-;78.00434113;-1;conc;mg/L;float;0;"[""no3""]";
+k;Potassium;Potassium;obs;07440-09-7 ;K;K^+;39.09830093;1;conc;mg/L;float;0;"[""k""]";
+18o;18-Isotope of Oxygen;18-Isotope of Oxygen;obs;;;;0;0;stable isotope;‰;float;0;"[""18O""]";
+pH;pH;-log10(H+);obs;;;;0;0;;;float;0;"[""ph""]";pH
+14c;14-Isotope of Carbon;14-Isotope of Carbon;obs;;;;0;0;;% mod.;float;0;"[""14C""]";
+wa_temp;Sampling Temperature;Sampling Temperature;obs;;;;0;0;temperature;°C;float;0;"[""temp"", ""wa_temp""]";temp
+2h;Deuterium;Deuterium;obs;;;;0;0;;‰;float;0;"[""2h""]";
+density;Density;Density;obs;;;;0;0;dens;g/cm3;float;0;"[""density""]";density
+flow;Flow Rate;Flow Rate;obs;;;;0;0;flow;L/min;float;0;"[""flow""]";
+sample_depth;Depth of sampling point;Depth of sampling point;obs;;;;0;0;length;m;float;0;"[""sample_depth""]";
+water_elev;Water Table Elevation;Water Table Elevation;obs;;;;0;0;length;masl;float;0;"[""water_elev""]";
+tds;Total Dissolved Solids;Total Dissolved Solids;obs;;;;0;0;conc;mg/L;float;0;"[""tds""]";
+tss;Total Suspended Solids;Total Suspended Solids;obs;;;;0;0;conc;mg/L;float;0;"[""tss""]";
+toc;Total Organic Carbon;Total Organic Carbon;obs;;;;0;0;conc;mg/L;float;0;"[""toc""]";
+hardness;Measured Hardness;Measured Hardness;obs;;;;0;0;conc;mg/L;float;0;"[""hard"", ""hardness""]";
+eh;Oxidation Potential;Oxidation Potential;obs;;;;0;0;;mV;float;0;"[""eh""]";
+tritium;Tritium;Tritium;obs;;;;0;0;;T.U.;float;0;"[""tritium""]";
+cond_25;Electrical Conductivity;Electrical Conductivity;obs;;;;0;0;;uS/cm;float;0;"[""cond"", ""cond_25""]";
+latitude;Latitude;Latitude;station;;;;0;;;°;float;0;"[""lat"", ""latitude""]";
+longitude;Longitude;Longitude;station;;;;0;;;°;float;0;"[""long"", ""longitude""]";
+elev;Elevation ;Elevation ;station;;;;;;length;masl;float;0;"[""elev"", ""elevation""]";
+sample_date;Sample Date;Sample Date;sample;;;;;;;;date;0;"[""sample_date"", ""date""]";
+sample_id;Sample Identifier;Sample Identifier;sample;;;;;;;;str;0;"[""sampleid"", ""sampleno""]";
+station_id;Station Identifier;Station Identifier;station;;;;;;;;str;1;"[""station"", ""stationid""]";
+year;Year of sampling date;Lookup Code;sample;;;;;;;;int;1;[];
+month;Month of sampling date;Lookup Code;sample;;;;;;;;int;1;[];
+season;Season of sampling date;Lookup Code;sample;;;;;;;;str;1;[];
+V;Vanadium;Vanadium;obs;7440-62-2;V;V;50.9415;0;conc;µg/L;float;0;"[""v"", ""vanadium""]";

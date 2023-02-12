@@ -3,10 +3,12 @@ import numpy as np
 import streamlit as st
 from bokeh.models.tools import SaveTool
 from bokeh.plotting import figure
+
 # from bokeh.models import Legend, Range1d, LabelSet, Label, HoverTool, Arrow, NormalHead, OpenHead, VeeHead, Span, Grid, Line, LinearAxis, Plot, SingleIntervalTicker, FuncTickFormatter
 
 import helper
 import const as cn
+
 
 class Boxplot:
     def __init__(self, df: pd.DataFrame, cfg: dict):
@@ -15,35 +17,52 @@ class Boxplot:
 
     def get_plot(self):
         # Find the quartiles and IQR foor each category
-        groups = self.data.groupby('group')
+        groups = self.data.groupby("group")
         q1 = groups.quantile(q=0.25)
         q2 = groups.quantile(q=0.5)
         q3 = groups.quantile(q=0.75)
         iqr = q3 - q1
-        upper = q3 + 1.5*iqr
-        lower = q1 - 1.5*iqr
+        upper = q3 + 1.5 * iqr
+        lower = q1 - 1.5 * iqr
 
         # find the outliers for each category
         def outliers(group):
             cat = group.name
-            result = group[(group.score > upper.loc[cat]['score']) | (group.score < lower.loc[cat]['score'])]['score']
+            result = group[
+                (group.score > upper.loc[cat]["score"])
+                | (group.score < lower.loc[cat]["score"])
+            ]["score"]
             return result
 
         out = groups.apply(outliers).dropna()
-        cats = self.data['group'].unique()
+        cats = self.data["group"].unique()
         if not out.empty:
             outx = list(out.index.get_level_values(0))
             outy = list(out.values)
 
-        p = figure(tools="save", background_fill_color=self.cfg['background_fill_color'], title="", x_range=cats)
+        p = figure(
+            tools="save",
+            background_fill_color=self.cfg["background_fill_color"],
+            title="",
+            x_range=cats,
+        )
 
-        p = figure(tools="", background_fill_color="#efefef", x_range=cats, toolbar_location=None)
+        p = figure(
+            tools="",
+            background_fill_color="#efefef",
+            x_range=cats,
+            toolbar_location=None,
+        )
 
         # if no outliers, shrink lengths of stems to be no longer than the minimums or maximums
         qmin = groups.quantile(q=0.00)
         qmax = groups.quantile(q=1.00)
-        upper.score = [min([x,y]) for (x,y) in zip(list(qmax.loc[:,'score']),upper.score)]
-        lower.score = [max([x,y]) for (x,y) in zip(list(qmin.loc[:,'score']),lower.score)]
+        upper.score = [
+            min([x, y]) for (x, y) in zip(list(qmax.loc[:, "score"]), upper.score)
+        ]
+        lower.score = [
+            max([x, y]) for (x, y) in zip(list(qmin.loc[:, "score"]), lower.score)
+        ]
 
         # stems
         p.segment(cats, upper.score, cats, q3.score, line_color="black")
@@ -64,5 +83,5 @@ class Boxplot:
         p.xgrid.grid_line_color = None
         p.ygrid.grid_line_color = "white"
         p.grid.grid_line_width = 2
-        p.xaxis.major_label_text_font_size="16px"
+        p.xaxis.major_label_text_font_size = "16px"
         return p
