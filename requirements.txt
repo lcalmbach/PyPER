@@ -7,3 +7,4 @@ streamlit_aggrid>=0.3.3
 chempy==0.8.2
 statsmodels==0.13.5
 xyzservices==2022.9.0
+PhreeqPython>=1.5.0
