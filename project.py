@@ -20,8 +20,10 @@ from config import (
     PHREEQC_DATABASE_PATH,
     ConcentrationUnits,
     ExtendedEnum,
+    PHREEQC_UNIT_OPTIONS,
+    UPLOAD_INSTRUCTIONS,
+    DOCUMENTATION_LINK,
 )
-from config import PHREEQC_UNIT_OPTIONS
 from helper import ExtendedEnum, show_table, sort_dict_by_value
 
 
@@ -277,7 +279,7 @@ class Project:
 
     def init_demo_dataset(self):
         """
-        Initializes the demo dataset. This function is called when initializing 
+        Initializes the demo dataset. This function is called when initializing
         the project and when the user select the demo dataset as the datasource
         """
         self.datasource = "Demo data"
@@ -875,14 +877,15 @@ class Project:
             {"index": 5, "title": "Unit", "func": get_unit},
             {"index": 6, "title": "Lookup Code", "func": get_lookup_code},
         ]
-
-        data_options = ["Demo data", "Upload Dataset"]
+        with st.expander("Instructions for uploading your own data"):
+            st.markdown(UPLOAD_INSTRUCTIONS.format(DOCUMENTATION_LINK + "data/data/"))
+        data_options = ["Demo data", "Upload Datasetf"]
         id = data_options.index(self.datasource)
         self.datasource = st.radio(label="Datasource", options=data_options, index=id)
         if data_options.index(self.datasource) == 1:
             self.show_upload()
         elif id == 1:
-            # index = 0 (demo data) and id was set to 1 (uploaded) before: 
+            # index = 0 (demo data) and id was set to 1 (uploaded) before:
             # user changed back to the demo dataset
             self.init_demo_dataset()
 

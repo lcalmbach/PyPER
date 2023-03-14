@@ -10,7 +10,7 @@ TYPES = ["str", "datetime", "float", "int", "bool"]
 MAX_LEGEND_ITEMS = 20
 IMAGE_FORMATS = ["png", "svg"]
 AGG_GRID_COL_HEIGHT = 30
-ALL_PLOTS = ["Piper", "Map"]
+ALL_PLOTS = ["Piper", "Map", "Time Series"]
 ND_FACTOR = 0.5
 PHREEQC_UNIT_OPTIONS = ["mmol/L", "mg/L", "ppm"]
 
@@ -151,6 +151,7 @@ FONT_SIZES = [
     32,
 ]
 
+DOCUMENTATION_LINK = "https://lcalmbach.github.io/fontus-help/"
 
 # texts
 ABOUT_TEXT = """## Fontus
@@ -158,4 +159,12 @@ ABOUT_TEXT = """## Fontus
 Welcome to Fontus, the comprehensive web application designed to help you explore and analyze water quality data with ease. Fontus is powered by the USGS geochemical model [PHREEQC](https://www.usgs.gov/software/phreeqc-version-3), providing you with accurate and reliable calculations to support your analysis. With Fontus, you can create visual representations of your data with [Piper](https://en.wikipedia.org/wiki/Piper_diagram) plots and maps, perform numerical analysis with the Mann Kendall trend method, and access a variety of calculators for formula weight conversion, saturation index, and water quality indices such as SAR. Whether you are a professional in the field or just starting out, Fontus provides you with the tools and resources you need to understand and analyze your water quality data. Test drive the app with the integrated demo dataset, or upload your own data for a more personalized experience. With an extensive help section, Fontus is here to guide you every step of the way. Start exploring today!
 
 Fontus is constantly evolving to meet the needs of its users. If you are a water quality professional or student, this app is here to support you with its comprehensive data analysis tools. And, if there is sufficient interest, the app will be extended with even more plot types and analysis methods. The developers of Fontus are always looking for ways to improve the app and make it even more useful to you. So, if you have suggestions or encounter any issues, don't hesitate to reach out to the [author](mailto:{}) with your feedback. Your input will help make Fontus the best it can be for you and the entire water quality community.
+"""
+
+UPLOAD_INSTRUCTIONS = """To upload and analyze your own dataset proceed as follows:
+- Prepare a comma-separated data file having the following format: comma-, tab- or semicolon-separated, each row represents a sample, and each column represents a parameter ([See example file](https://raw.githubusercontent.com/lcalmbach/fontus/master/data/demo.csv)).
+- Select the `Upload Dataset` option in the radio button selection below.
+- Enter the separator character, Enconding, and number of rows above the header line to be skipped.
+- Drag and drop the file into the `Upload csv-file` field.
+- If you need more guidance, click [here]({}).
 """

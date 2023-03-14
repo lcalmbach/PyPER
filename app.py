@@ -13,7 +13,7 @@ import os
 from datetime import datetime
 import time
 
-from config import ABOUT_TEXT, TEMP_FOLDER, CalculatorsEnum
+from config import ABOUT_TEXT, TEMP_FOLDER, CalculatorsEnum, DOCUMENTATION_LINK
 from project import Project, AnalysisEnum
 from plots.piper import Piper
 from plots.map import Map
@@ -24,17 +24,16 @@ from analysis.mann_kendall import MannKendall
 from helper import get_base64_encoded_image, load_css
 
 
-__version__ = "0.1.0"
+__version__ = "0.1.1"
 __author__ = "Lukas Calmbach"
 __author_email__ = "lcalmbach@gmail.com"
-VERSION_DATE = "2022-02-12"
+VERSION_DATE = "2022-03-14"
 LICENSE = "https://github.com/lcalmbach/fontus/blob/master/LICENSE.txt"
 MY_EMOJI = "💧"
 MY_NAME = "Fontus"
 GIT_REPO = "https://github.com/lcalmbach/fontus"
 APP_URL = "https://lcalmbach-pyper-app-netzym.streamlit.app/"
 SPLASH_IMAGE = "./images/water-2630618-wide.jpg"
-DOCUMENTATION_LINK = "https://lcalmbach.github.io/fontus-help/"
 URL_GIT_LOGO = "./images/git_logo.png"
 
 
@@ -66,8 +65,12 @@ def show_documentation_link():
 
     @st.cache
     def get_html_link() -> str:
-        html_link = "<br><a href = '{}' target = '_blank'><img src='data:image/png;base64, {}' class='img-fluid' style='width:45px;height:45px;'></a><br>".format(
-            DOCUMENTATION_LINK, get_base64_encoded_image("./images/documentation.png")
+        # replace icon by text
+        # html_link = "<br><a href = '{}' target = '_blank'><img src='data:image/png;base64, {}' class='img-fluid' style='width:45px;height:45px;'></a><br>".format(
+        #     DOCUMENTATION_LINK, get_base64_encoded_image("./images/documentation.png")
+        # )
+        html_link = (
+            f"<br><a href = '{DOCUMENTATION_LINK}' target = '_blank'>🚑 Help</a><br>"
         )
         return html_link
 
